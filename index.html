@@ -179,7 +179,7 @@
     /* ═══ SERVICES ══════════════════════════════════ */
     #services { background:var(--bg2); }
     .svc-head { display:grid; grid-template-columns:1fr 1.1fr; gap:3rem; align-items:end; margin-bottom:2.75rem; }
-    .svc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:var(--r); overflow:hidden; }
+    .svc-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:var(--r); overflow:hidden; }
     .svc-card { background:var(--bg); padding:2.1rem; display:flex; flex-direction:column; position:relative; transition:background 0.2s; }
     .svc-card:hover { background:#FFFBF7; }
     .svc-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--or); transform:scaleX(0); transform-origin:left; transition:transform 0.28s var(--ease); }
@@ -197,6 +197,63 @@
     .svc-cta:hover { gap:8px; }
     .svc-note { margin-top:1.5rem; padding:0.9rem 1.25rem; background:var(--or-lt); border-left:3px solid var(--or); font-size:0.81rem; color:var(--ch2); line-height:1.6; }
     .svc-note strong { color:var(--ch); font-weight:600; }
+
+    /* ═══ READINESS REVIEW (entry diagnostic) ═════════ */
+    .rr-card {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 2.5rem;
+      align-items: center;
+      background: linear-gradient(135deg, #FFFBF7 0%, var(--bg2) 100%);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--or);
+      border-radius: var(--r);
+      padding: 2.25rem;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 4px 20px rgba(251,129,28,0.06);
+    }
+    .rr-card-left { min-width: 0; }
+    .rr-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--or); color: #fff;
+      font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.8rem; border-radius: 2px;
+      margin-bottom: 0.85rem;
+    }
+    .rr-pulse {
+      width: 5px; height: 5px; background: #fff; border-radius: 50%;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    .rr-title {
+      font-family: var(--f-hd);
+      font-size: clamp(1.5rem, 2.6vw, 2rem);
+      font-weight: 800; text-transform: uppercase;
+      line-height: 1.0; letter-spacing: 0.01em;
+      color: var(--ch); margin-bottom: 0.9rem;
+    }
+    .rr-body {
+      font-size: 0.92rem; color: var(--body); line-height: 1.7;
+      margin-bottom: 1.1rem;
+    }
+    .rr-list { list-style: none; }
+    .rr-list li {
+      display: flex; align-items: flex-start; gap: 9px;
+      font-size: 0.84rem; color: var(--ch2);
+      padding: 0.32rem 0; line-height: 1.4;
+    }
+    .rr-list .dot {
+      width: 4px; height: 4px; background: var(--or);
+      border-radius: 50%; margin-top: 6px; flex-shrink: 0;
+    }
+    .rr-card-right {
+      display: flex; flex-direction: column; gap: 0.6rem;
+      align-items: stretch;
+    }
+    .rr-note {
+      font-size: 0.78rem; color: var(--body);
+      text-align: center; margin: 0;
+    }
 
     /* ═══ WHY ═══════════════════════════════════════ */
     #why { background:var(--bg); }
@@ -358,6 +415,7 @@
       .svc-grid { grid-template-columns:1fr; }
       .about-grid { grid-template-columns:1fr; }
       .photo-frame { max-width:220px; }
+      .rr-card { grid-template-columns:1fr; gap:1.5rem; padding:1.75rem; }
     }
     @media (max-width:768px) {
       section { padding:72px 1.5rem; }
@@ -450,8 +508,8 @@
     </p>
     <div class="hero-acts">
       <a href="#contact" class="btn btn-pri">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        Book a Consultation
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Book a Risk Call
       </a>
       <a href="#services" class="btn btn-ghost">
         Explore Services
@@ -497,7 +555,7 @@
     </div>
     <div class="strip-item">
       <svg class="strip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <span class="strip-lbl">ISO System Development</span>
+      <span class="strip-lbl">ISO &amp; IMS Development</span>
     </div>
     <div class="strip-item">
       <svg class="strip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -579,6 +637,26 @@
         <a href="#contact" class="svc-cta">Enquire<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
       </div>
 
+      <!-- Card 4: Leadership & Advisory -->
+      <div class="svc-card rv d3">
+        <div class="svc-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="svc-tier">Leadership &amp; Risk Advisory</div>
+        <h3 class="svc-name">Leadership Under<br>Pressure &amp; Risk<br>Advisory</h3>
+        <p class="svc-desc">For leaders carrying real operational risk &mdash; mentoring and structured advisory focused on decision quality, communication discipline, psychosocial duty and the practical demands of leading high-stakes work. Always tethered to a commercial risk anchor.</p>
+        <ul class="svc-list">
+          <li><span class="dot"></span>1:1 mentoring &mdash; Leadership Under Pressure</li>
+          <li><span class="dot"></span>Leadership Maturity Workshops (half / full day)</li>
+          <li><span class="dot"></span>Psychosocial Systems &amp; Consultation Review</li>
+          <li><span class="dot"></span>Executive Risk Briefings</li>
+          <li><span class="dot"></span>Decision quality &amp; communication discipline</li>
+          <li><span class="dot"></span>Operational governance support</li>
+        </ul>
+        <p style="font-size:0.74rem;color:var(--body);font-style:italic;margin-top:0.85rem;line-height:1.55">Leadership advisory is mentoring &mdash; not clinical assessment, therapy or coaching. Individual psychological assessment is referred to qualified professionals.</p>
+        <a href="#contact" class="svc-cta">Enquire<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
     </div>
 
     <div class="svc-note rv d1">
@@ -600,7 +678,7 @@
             <span class="why-n">01</span>
             <div>
               <div class="why-t">Senior practitioner — you get Daniel, not a delegate</div>
-              <div class="why-d">27 years in construction industry. Exemplar Global OHSMS Lead Auditor. ISO 45001 Lead Auditor. No account managers, no junior consultants. Every engagement is Daniel, directly.</div>
+              <div class="why-d">27 years in construction industry. Exemplar Global Certified Lead Auditor &mdash; Integrated Management Systems (ISO 9001, 14001, 45001). No account managers, no junior consultants. Every engagement is Daniel, directly.</div>
             </div>
           </li>
           <li class="why-item rv d1">
@@ -921,27 +999,23 @@
         <p class="about-role">Founder &amp; Principal HSEQ Consultant — SiteGuard Systems</p>
 
         <div class="about-bio rv">
-          <p>Daniel is a senior HSEQ practitioner with over 27 years in the construction industry. He has worked across Tier 2 and Tier 3 builders, large subcontractors and complex civil and commercial projects — building management systems from the ground up and supporting companies on their journey towards ISO and OHS/WHS management system improvement.</p>
+          <p>Daniel is a senior HSEQ and risk practitioner with over 27 years in the construction industry. He has worked across Tier 2 and Tier 3 builders, large subcontractors and complex civil and commercial projects &mdash; building management systems from the ground up and supporting companies on their journey towards ISO certification and OHS/WHS management system improvement. SiteGuard's focus is high-risk construction and contracting &mdash; operational risk, leadership, assurance and systems that hold up at site level.</p>
           <p>SiteGuard was founded on a simple observation: construction companies are often buried in compliance paperwork but short on practical systems that hold up on site. Every document and service SiteGuard provides is built to solve a real operational problem — not to fill a folder.</p>
           <p>The approach is straightforward: senior practitioner delivery, plain-English documents, and systems designed to be used on site, not filed and forgotten.</p>
         </div>
 
         <div class="cred-grid rv d1">
-          <div class="cred">
-            <div class="cred-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-            <span class="cred-lbl">Exemplar Global OHSMS Lead Auditor</span>
-          </div>
-          <div class="cred">
-            <div class="cred-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
-            <span class="cred-lbl">ISO 45001 Lead Auditor</span>
-          </div>
-          <div class="cred">
-            <div class="cred-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-            <span class="cred-lbl">AIHS Member</span>
+          <div class="cred" style="grid-column:1/-1">
+            <div class="cred-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
+            <span class="cred-lbl">Exemplar Global Certified Lead Auditor — Integrated Management Systems<br><span style="font-weight:500;font-size:0.72rem;color:var(--body)">ISO 9001 &middot; ISO 14001 &middot; ISO 45001 &middot; ISO 19011 (Auditing) &middot; Leading Audit Teams</span></span>
           </div>
           <div class="cred">
             <div class="cred-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
             <span class="cred-lbl">27 Years Construction Industry</span>
+          </div>
+          <div class="cred">
+            <div class="cred-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+            <span class="cred-lbl">IMS &middot; OHS &middot; WHS &middot; Risk &amp; Assurance</span>
           </div>
         </div>
 
@@ -993,7 +1067,7 @@
         </div>
 
         <div class="contact-ctas rv d1">
-          <a href="mailto:hello@siteguardsystems.com.au?subject=Consultation%20Enquiry" class="btn btn-pri">
+          <a href="mailto:hello@siteguardsystems.com.au?subject=Risk%20Call%20Enquiry" class="btn btn-pri">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             Email Us
           </a>
@@ -1013,6 +1087,7 @@
           <label for="f-svc">What Do You Need?</label>
           <select id="f-svc">
             <option value="">Select a service...</option>
+            <option>HSEQ &amp; Prequalification Readiness Review</option>
             <option>SWMS development or review</option>
             <option>OHS/WHS Safety Management System development</option>
             <option>ISO 45001 / 9001 / 14001 / IMS system development support</option>
@@ -1023,6 +1098,8 @@
             <option>Template purchase — SWMS or trade pack</option>
             <option>Template purchase — management system bundle</option>
             <option>FORMS platform — register interest</option>
+            <option>Leadership &amp; Risk Advisory / Mentoring</option>
+            <option>Psychosocial Systems &amp; Consultation Review</option>
             <option>General HSEQ consulting</option>
           </select>
         </div>
@@ -1037,6 +1114,23 @@
   </div>
 </section>
 
+
+<!-- ─── LIABILITY NOTICE ──────────────────────────── -->
+<div id="liability-notice">
+  <div class="w">
+    <p>
+      <strong>SiteGuard provides frameworks, systems and advisory support.</strong>
+      SiteGuard does not guarantee certification, accreditation, regulatory or audit outcomes. The PCBU retains full responsibility for implementation, compliance and the operation of its own systems. References to standards and codes are general and should be checked against current jurisdiction-specific obligations before being relied upon in client deliverables.
+    </p>
+  </div>
+</div>
+
+<style>
+  #liability-notice { background: var(--bg3); border-top: 1px solid var(--rule); padding: 1.5rem 2rem; }
+  #liability-notice p { max-width: 1160px; margin: 0 auto; font-size: 0.74rem; color: var(--body); line-height: 1.6; }
+  #liability-notice strong { color: var(--ch2); font-weight: 600; }
+  @media (max-width:768px) { #liability-notice { padding: 1.25rem 1.5rem; } }
+</style>
 
 <!-- ─── FOOTER ─────────────────────────────────── -->
 <footer>
