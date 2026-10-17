@@ -1,0 +1,15 @@
+{
+  "name": "siteguard-website",
+  "private": true,
+  "type": "module",
+  "description": "siteguardsystems.com.au: multi-page static site built by build.mjs for Cloudflare Pages.",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:production": "node build.mjs --production",
+    "sync-legal": "node scripts/sync-legal.mjs",
+    "test": "node build.mjs && node --test test/*.test.js",
+    "test:e2e": "node test/e2e.mjs"
+  },
+  "engines": { "node": ">=20.11 <25" },
+  "devDependencies": { "playwright": "1.56.1" }
+}
