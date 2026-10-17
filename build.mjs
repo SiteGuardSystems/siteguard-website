@@ -106,7 +106,8 @@ const head = (trail, h1, lede) => `<section class="page-head"><div class="wrap">
 const enquire = (label = "Send an enquiry") => `<p><a class="btn btn-hivis" href="/contact/">${label}</a></p>`;
 
 function leadForm() {
-  return `<form class="form" data-lead-form data-source="systems" data-endpoint="${esc(LEAD_ENDPOINT)}" novalidate>
+  return `<form class="form" data-lead-form data-source="systems" data-endpoint="${esc(LEAD_ENDPOINT)}" method="post" action="${esc(LEAD_ENDPOINT)}" novalidate>
+  <input type="hidden" name="source" value="systems">
   <label>Your name<input name="name" autocomplete="name" required maxlength="200"></label>
   <label>Email<input type="email" name="email" autocomplete="email" required maxlength="200"></label>
   <label>Company<input name="company" autocomplete="organization" maxlength="200"></label>
@@ -246,7 +247,7 @@ async function build() {
     <div><h2>By trade</h2>
       <table class="doc-table"><thead><tr><th scope="col">Trade series</th><th scope="col">SWMS</th><th scope="col">ITPs</th></tr></thead>
       <tbody>${tc.map((t) => `<tr><td>${esc(t.name)}</td><td>${t.swms || "–"}</td><td>${t.itp || "–"}</td></tr>`).join("")}</tbody></table>
-      <p class="small mt">Every trade pack also carries the core site SWMS for general construction, and the high risk construction work SWMS are available across all trades.</p></div>
+      <p class="small mt">Every trade pack also carries the core site SWMS for general construction, and the high risk construction work SWMS cover work in every trade.</p></div>
     <div><h2>How the library is kept</h2>
       <ul><li>Every document carries document control: reference, revision and date on every page.</li>
       <li>Each opens with a "Use of this document" statement that tells the business what to check and adapt.</li>
@@ -298,6 +299,12 @@ async function build() {
 </div></section>`,
   });
 
+  page({
+    url: "/contact/sent/", title: "Enquiry sent", trail: [["/contact/", "Contact"], ["/contact/sent/", "Sent"]],
+    description: "Your enquiry has been sent. We reply within one business day.",
+    body: `<section class="page-head"><div class="wrap"><h1>Thanks. Your enquiry has been sent.</h1><p class="lede">We reply within one business day.</p><p><a class="btn" href="/">Back to the home page</a></p></div></section>`,
+  });
+
   for (const [file, slug, nav] of [["website-disclaimer.md", "disclaimer", "Website Disclaimer"], ["privacy.md", "privacy", "Privacy Policy"], ["website-terms.md", "website-terms", "Website Terms of Use"]]) {
     const doc = await legal(file);
     const url = `/legal/${slug}/`;
@@ -345,7 +352,7 @@ async function main() {
   // Cloudflare Pages headers and redirects.
   const connect = new URL(LEAD_ENDPOINT).origin;
   await writeFile(path.join(DIST, "_headers"), `/*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self' ${connect}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
