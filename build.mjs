@@ -252,7 +252,8 @@ async function build() {
       <ul><li>Every document carries document control: reference, revision and date on every page.</li>
       <li>Each opens with a "Use of this document" statement that tells the business what to check and adapt.</li>
       <li>Written to Australian WHS laws (the OHS Act 2004 in Victoria) and aligned to ISO 45001, ISO 9001 and ISO 14001.</li>
-      <li>The whole library is reviewed against legislative change every 6 months; subscribers receive the updated documents.</li></ul>
+      <li>The whole library is reviewed against legislative change every 6 months; subscribers receive the updated documents.</li>
+      <li>Subscribers add their logo to every document at no extra cost.</li></ul>
       <h2 class="mt-lg">Buy or commission</h2>
       <p>Standard documents are on <a href="${FORMS}/">SiteGuard FORMS</a>, bought outright or on subscription.${fromP["trade-packs"] ? ` Trade packs from ${money(fromP["trade-packs"])}, builder packs from ${money(fromP["builder-packs"])} (prices exclude GST).` : ""} Custom SWMS, project-specific plans and management systems are consulting work.</p>
       <div class="btn-row"><a class="btn btn-hivis" href="${FORMS}/">Go to SiteGuard FORMS</a><a class="btn" href="/contact/">Commission a document</a></div></div>
