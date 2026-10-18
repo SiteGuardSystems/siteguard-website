@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-17T11:58:47+00:00",
+ "generated_at": "2026-10-18T07:49:44+00:00",
  "preview": false,
  "pricing_revision": "Rev02 -- 2026-10-14",
  "facts": {
@@ -19,10 +19,10 @@
   "review_cycle": "6-monthly"
  },
  "from_prices": {
-  "trade-packs": null,
-  "builder-packs": null,
-  "management-systems": null,
-  "specialist-packs": null,
+  "trade-packs": 390,
+  "builder-packs": 2390,
+  "management-systems": 349,
+  "specialist-packs": 390,
   "consultants": null
  },
  "trades": [
