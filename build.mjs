@@ -54,7 +54,7 @@ function footer() {
     <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li></ul></div>
     <div><h2>Legal</h2><ul><li><a href="/legal/disclaimer/">Website Disclaimer</a></li><li><a href="/legal/privacy/">Privacy Policy</a></li><li><a href="/legal/website-terms/">Website Terms of Use</a></li></ul></div>
   </div>
-  <p class="footer-base">SiteGuard provides frameworks, systems and advisory support. Work health and safety duties stay with the person conducting the business or undertaking.<br>© ${new Date().getFullYear()} SiteGuard Systems Pty Ltd</p>
+  <p class="footer-base">SiteGuard provides frameworks, systems and advisory support. Work health and safety duties stay with the person conducting the business or undertaking.<br>© ${new Date().getFullYear()} SiteGuard Systems · ABN 36 765 797 871</p>
 </div></footer>`;
 }
 
