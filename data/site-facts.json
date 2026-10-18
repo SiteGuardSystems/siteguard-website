@@ -1,0 +1,200 @@
+{
+ "generated_at": "2026-10-17T11:58:47+00:00",
+ "preview": false,
+ "pricing_revision": "Rev02 -- 2026-10-14",
+ "facts": {
+  "documents": 781,
+  "documents_rounded": "780+",
+  "by_family": {
+   "Form": 227,
+   "SWMS": 215,
+   "ITP": 123,
+   "Register": 112,
+   "Plan": 78,
+   "Policy": 26
+  },
+  "swms": 215,
+  "swms_series": 28,
+  "trades": 28,
+  "review_cycle": "6-monthly"
+ },
+ "from_prices": {
+  "trade-packs": null,
+  "builder-packs": null,
+  "management-systems": null,
+  "specialist-packs": null,
+  "consultants": null
+ },
+ "trades": [
+  "Carpentry",
+  "Civil Works",
+  "Communications & Security",
+  "Concrete",
+  "Demolition",
+  "Electrical",
+  "Facade & Cladding",
+  "Foundations & Piling",
+  "Fencing",
+  "Interior Finishes",
+  "Fire Services",
+  "Glazing",
+  "Landscaping & External Works",
+  "Lifts & Vertical Transport",
+  "Masonry",
+  "Mechanical Services",
+  "Painting",
+  "Passive Fire Protection",
+  "Plastering & Linings",
+  "Plumbing & Hydraulics",
+  "Plant Operation",
+  "Roofing",
+  "Rainwater Harvesting",
+  "Building Services",
+  "Solar PV, Battery & EV Charging",
+  "Structural Steel",
+  "Tiling",
+  "Waterproofing"
+ ],
+ "trade_counts": [
+  {
+   "name": "Carpentry",
+   "swms": 17,
+   "itp": 6
+  },
+  {
+   "name": "Civil Works",
+   "swms": 17,
+   "itp": 14
+  },
+  {
+   "name": "Communications & Security",
+   "swms": 3,
+   "itp": 4
+  },
+  {
+   "name": "Concrete",
+   "swms": 11,
+   "itp": 8
+  },
+  {
+   "name": "Demolition",
+   "swms": 6,
+   "itp": 5
+  },
+  {
+   "name": "Electrical",
+   "swms": 10,
+   "itp": 5
+  },
+  {
+   "name": "Facade & Cladding",
+   "swms": 6,
+   "itp": 5
+  },
+  {
+   "name": "Foundations & Piling",
+   "swms": 2,
+   "itp": 3
+  },
+  {
+   "name": "Fencing",
+   "swms": 3,
+   "itp": 2
+  },
+  {
+   "name": "Interior Finishes",
+   "swms": 8,
+   "itp": 0
+  },
+  {
+   "name": "Fire Services",
+   "swms": 5,
+   "itp": 5
+  },
+  {
+   "name": "Glazing",
+   "swms": 1,
+   "itp": 4
+  },
+  {
+   "name": "Landscaping & External Works",
+   "swms": 5,
+   "itp": 6
+  },
+  {
+   "name": "Lifts & Vertical Transport",
+   "swms": 2,
+   "itp": 4
+  },
+  {
+   "name": "Masonry",
+   "swms": 2,
+   "itp": 4
+  },
+  {
+   "name": "Mechanical Services",
+   "swms": 7,
+   "itp": 5
+  },
+  {
+   "name": "Painting",
+   "swms": 4,
+   "itp": 4
+  },
+  {
+   "name": "Passive Fire Protection",
+   "swms": 2,
+   "itp": 3
+  },
+  {
+   "name": "Plastering & Linings",
+   "swms": 7,
+   "itp": 7
+  },
+  {
+   "name": "Plumbing & Hydraulics",
+   "swms": 8,
+   "itp": 5
+  },
+  {
+   "name": "Plant Operation",
+   "swms": 14,
+   "itp": 0
+  },
+  {
+   "name": "Roofing",
+   "swms": 8,
+   "itp": 4
+  },
+  {
+   "name": "Rainwater Harvesting",
+   "swms": 0,
+   "itp": 3
+  },
+  {
+   "name": "Building Services",
+   "swms": 8,
+   "itp": 0
+  },
+  {
+   "name": "Solar PV, Battery & EV Charging",
+   "swms": 0,
+   "itp": 3
+  },
+  {
+   "name": "Structural Steel",
+   "swms": 4,
+   "itp": 5
+  },
+  {
+   "name": "Tiling",
+   "swms": 0,
+   "itp": 4
+  },
+  {
+   "name": "Waterproofing",
+   "swms": 9,
+   "itp": 5
+  }
+ ]
+}
