@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-18T11:01:08+00:00",
+ "generated_at": "2026-10-18T11:37:27+00:00",
  "preview": false,
  "pricing_revision": "Rev03 -- 2026-10-18",
  "facts": {
@@ -23,7 +23,7 @@
   "builder-packs": 2390,
   "management-systems": 349,
   "specialist-packs": 390,
-  "consultants": 3990
+  "consultants": null
  },
  "trades": [
   "Carpentry",
