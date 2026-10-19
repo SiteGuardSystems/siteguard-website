@@ -12,7 +12,17 @@ export function esc(s) {
 /** Bracketed placeholders still to be filled in, e.g. "[ABN]" (not links). */
 export const PLACEHOLDER_RE = /\[[^\]\n]+\](?!\()/g;
 
-export function frontMatter(text) {
+export function frontMatter(rawText) {
+  // The legal sources are synced from SiteGuard-Forms and have turned up
+  // with CRLF line endings -- the \n-only regexes below silently matched
+  // nothing against "---\r\n", returning an EMPTY meta object with no
+  // error. Every field (title included) was then `undefined` everywhere.
+  // Same bug, same fix, as SiteGuard-Forms-Storefront's copy of this file
+  // (PR #5 there, 19 Oct 2026) -- confirmed this repo's content has the
+  // same CRLF line endings and this function the same byte-for-byte code.
+  // Normalize once, up front, so the rest of this function (and the
+  // returned body) never has to think about line-ending style again.
+  const text = rawText.replace(/\r\n/g, "\n");
   const m = text.match(/^---\n([\s\S]*?)\n---\n?/);
   if (!m) return { meta: {}, body: text };
   const meta = {};
