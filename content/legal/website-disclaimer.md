@@ -2,8 +2,8 @@
 reference: SG-LEGAL-05
 brand: SiteGuard Systems
 title: Website Disclaimer: SiteGuard Systems
-version: "0.1"
-date: 17 October 2026
+version: "0.3"
+date: 18 October 2026
 status: Issued while the solicitor review is in progress.
 ---
 
