@@ -70,6 +70,8 @@ p, ul, ol { margin: 0 0 1em; }
 .nav a:hover, .nav a[aria-current="page"] { border-bottom-color: var(--hivis); color: #fff; }
 .nav .cart-link { background: var(--hivis); color: var(--ink); padding: 0.45rem 0.8rem; border: 0; font-weight: 700; }
 .nav .cart-link:hover { background: #fff; color: var(--ink); }
+.nav .cart-link.is-soon, .nav .cart-link.is-soon:hover { background: transparent; color: inherit; border: 1px dashed currentColor; font-weight: 600; cursor: default; }
+.forms-soon { font-weight: 600; white-space: nowrap; }
 .menu-toggle { display: none; }
 @media (max-width: 760px) {
   .header-row { gap: 0.5rem; }
