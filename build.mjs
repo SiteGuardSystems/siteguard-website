@@ -23,7 +23,12 @@ const EMAIL = "hello@siteguardsystems.com.au";
 const LINKEDIN = "https://www.linkedin.com/in/silverdaniel";
 const CREDENTIAL = "Exemplar Global Certified Lead Auditor — Integrated Management Systems (ISO 9001, 14001, 45001)";
 
-export const BANNED = /\b(compliant|certified|endorsed|guarantee[sd]?|4801|coming soon|rolling out|in progress|quarterly)\b/gi;
+// "coming soon" was banned until 22 Oct 2026. Dan then asked for the SiteGuard
+// FORMS mentions on this site to read "coming soon", unlinked, while FORMS is in
+// beta (legal advice, pending settlement). Allowed only in that exact phrase.
+export const BANNED = /\b(compliant|certified|endorsed|guarantee[sd]?|4801|rolling out|in progress|quarterly)\b|(?<!SiteGuard FORMS[^<]{0,3})\bcoming soon\b/gi;
+// SiteGuard FORMS is not open yet: shown as text, never as a link.
+const FORMS_SOON = `<span class="forms-soon">SiteGuard FORMS (coming soon)</span>`;
 
 const pages = [];
 const problems = [];
@@ -39,7 +44,7 @@ function header(url) {
   <div class="wrap header-row">
     <a class="brand" href="/"><img src="/assets/shield.png" alt="" width="34" height="44"><span class="brand-name">SiteGuard <b>Systems</b></span></a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
-    <nav class="nav" id="site-nav" aria-label="Main">${NAV.map(([h, l]) => `<a href="${h}"${url.startsWith(h) ? ' aria-current="page"' : ""}>${l}</a>`).join("")}<a class="cart-link" href="${FORMS}/">SiteGuard FORMS</a></nav>
+    <nav class="nav" id="site-nav" aria-label="Main">${NAV.map(([h, l]) => `<a href="${h}"${url.startsWith(h) ? ' aria-current="page"' : ""}>${l}</a>`).join("")}<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon</span></nav>
   </div>
 </header>`;
 }
@@ -126,7 +131,7 @@ const SERVICES = {
     lede: "Practical, well-structured documentation for growing subcontractors and small builders, from a single SWMS to a full trade pack, without a complex engagement.",
     items: ["A single SWMS, scoped to your work, written and controlled", "Trade document packs for every major trade", "Site safety forms and induction records",
       "Safety walks and site inspections", "Toolbox talks and pre-start meeting records", "HSEQ coordination and administration"],
-    note: `Need standard documents now? Trade packs are available to buy on <a href="${FORMS}/trade-packs/">SiteGuard FORMS</a>.`,
+    note: `Standard trade packs will be available on ${FORMS_SOON}. Until then, we can prepare the documents you need. <a href="/contact/">Contact us</a>.`,
   },
   builders: {
     title: "Builders and growing businesses", short: "Safety systems, audit support and incident investigation",
@@ -187,8 +192,8 @@ async function build() {
     <p>SiteGuard maintains ${esc(f.documents_rounded)} controlled, version-managed documents: ${f.swms} SWMS, ${f.by_family.ITP ?? 0} inspection and test plans, and the plans, policies, forms and registers of a full management system. Every document is written to Australian WHS laws (the OHS Act 2004 in Victoria) and reviewed against legislative change every 6 months.</p>
     <p><a href="/library/">See the document library</a></p></div>
   <div><h2>Buy documents directly</h2>
-    <p>Not every job needs a consulting engagement. Trade packs, builder packs and management-system packs are on SiteGuard FORMS. Every package can be bought outright or on subscription, with 6-monthly legislative review updates.</p>
-    <p><a class="btn" href="${FORMS}/">Go to SiteGuard FORMS</a></p></div>
+    <p>Not every job needs a consulting engagement. Trade packs, builder packs and management-system packs will be available on ${FORMS_SOON}. Until then, we can prepare the documents you need.</p>
+    <p><a class="btn" href="/contact/">Contact us</a></p></div>
 </div></section>
 <section class="band band-ink"><div class="wrap">
   <h2>Tell us about your project.</h2>
@@ -252,11 +257,10 @@ async function build() {
       <ul><li>Every document carries document control: reference, revision and date on every page.</li>
       <li>Each opens with a "Use of this document" statement that tells the business what to check and adapt.</li>
       <li>Written to Australian WHS laws (the OHS Act 2004 in Victoria) and aligned to ISO 45001, ISO 9001 and ISO 14001.</li>
-      <li>The whole library is reviewed against legislative change every 6 months; subscribers receive the updated documents.</li>
-      <li>Subscribers add their logo to every document at no extra cost.</li></ul>
+      <li>The whole library is reviewed against legislative change every 6 months.</li></ul>
       <h2 class="mt-lg">Buy or commission</h2>
-      <p>Standard documents are on <a href="${FORMS}/">SiteGuard FORMS</a>, bought outright or on subscription.${fromP["trade-packs"] ? ` Trade packs from ${money(fromP["trade-packs"])}, builder packs from ${money(fromP["builder-packs"])} (prices exclude GST).` : ""} Custom SWMS, project-specific plans and management systems are consulting work.</p>
-      <div class="btn-row"><a class="btn btn-hivis" href="${FORMS}/">Go to SiteGuard FORMS</a><a class="btn" href="/contact/">Commission a document</a></div></div>
+      <p>Standard documents will be available on ${FORMS_SOON}, bought outright or on subscription. Until then, and for custom SWMS, project-specific plans and management systems, it is consulting work.</p>
+      <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Commission a document</a></div></div>
   </div>
 </div></section>`,
   });
