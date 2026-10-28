@@ -68,3 +68,11 @@ test("partners page: partner enquiry form posts to /api/lead as a partner enquir
   assert.match(html, /name="enquiry_type" value="partner"/);
   assert.match(html, /How referrals work/);
 });
+
+test("no intro video until data/intro-video.json sets one; CSP unchanged", async () => {
+  const video = JSON.parse(await readFile(path.join(ROOT, "data/intro-video.json"), "utf8"));
+  if (video.provider) return;
+  const home = pages.find((p) => p.f === "index.html").html;
+  assert.ok(!/intro-video/.test(home));
+  assert.ok(!/youtube/.test(await readFile(path.join(DIST, "_headers"), "utf8")));
+});
