@@ -8,14 +8,21 @@
 //
 //   node build.mjs               # build; notes open items
 //   node build.mjs --production  # also fails on open [placeholders] in a legal page
+//   node build.mjs --sample-partners  # preview only: fills the partner and review
+//                                     # blocks from data/*.sample.json
 import { readFile, writeFile, mkdir, rm, cp } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { esc, frontMatter, render, plain, PLACEHOLDER_RE } from "./scripts/lib/md.mjs";
+import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/lib/trust.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
 const PRODUCTION = process.argv.includes("--production");
+const SAMPLE_PARTNERS = process.argv.includes("--sample-partners");
+// Partners, affiliates and the Google review link (data/partners.json,
+// data/google-reviews.json; scripts/lib/trust.mjs). Loaded in build().
+let TRUST = { partners: [], reviews: {} };
 const ORIGIN = (process.env.SITE_ORIGIN ?? "https://www.siteguardsystems.com.au").replace(/\/$/, "");
 const FORMS = (process.env.FORMS_URL ?? "https://www.siteguardforms.com.au").replace(/\/$/, "");
 const LEAD_ENDPOINT = process.env.LEAD_ENDPOINT ?? `${FORMS}/api/lead`;
@@ -56,7 +63,7 @@ function footer() {
     <div><h2>Services</h2><ul>
       <li><a href="/services/subcontractors/">Subcontractors</a></li><li><a href="/services/builders/">Builders</a></li>
       <li><a href="/services/iso-ims/">ISO and IMS</a></li><li><a href="/services/leadership-advisory/">Leadership and risk advisory</a></li></ul></div>
-    <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li></ul></div>
+    <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li><li><a href="/partners/">Partners and referrals</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
     <div><h2>Legal</h2><ul><li><a href="/legal/disclaimer/">Website Disclaimer</a></li><li><a href="/legal/privacy/">Privacy Policy</a></li><li><a href="/legal/website-terms/">Website Terms of Use</a></li></ul></div>
   </div>
   <p class="footer-base">SiteGuard provides frameworks, systems and advisory support. Work health and safety duties stay with the person conducting the business or undertaking.<br>© ${new Date().getFullYear()} SiteGuard Systems · ABN 36 765 797 871</p>
@@ -69,7 +76,7 @@ function crumbs(trail) {
     i === items.length - 1 ? `<li aria-current="page">${esc(l)}</li>` : `<li><a href="${h}">${esc(l)}</a></li>`).join("")}</ol></nav>`;
 }
 
-function page({ url, title, description, body, trail = [], jsonld = [] }) {
+function page({ url, title, description, body, trail = [], jsonld = [], strip = true }) {
   const full = url === "/" ? title : `${title} | SiteGuard Systems`;
   const ld = [...jsonld];
   if (trail.length) ld.push({ "@context": "https://schema.org", "@type": "BreadcrumbList",
@@ -101,6 +108,7 @@ ${header(url)}
 <main id="main">
 ${body}
 </main>
+${strip ? partnerStrip(TRUST) : ""}
 ${footer()}
 </body>
 </html>
@@ -160,6 +168,9 @@ async function legal(file) {
 }
 
 async function build() {
+  TRUST = await loadTrust(ROOT, "systems", { sample: SAMPLE_PARTNERS });
+  for (const p of TRUST.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
+  if (SAMPLE_PARTNERS) problems.push(`data: built with SAMPLE partners and reviews (--sample-partners)${PRODUCTION ? "; a production build can't use sample data" : " (open item: preview only)"}`);
   const facts = JSON.parse(await readFile(path.join(ROOT, "data/site-facts.json"), "utf8"));
   const f = facts.facts;
   const fromP = facts.preview ? {} : facts.from_prices; // a preview catalogue never sets public prices
@@ -300,8 +311,15 @@ async function build() {
     <p><strong>Email</strong><br><a href="mailto:${EMAIL}">${EMAIL}</a></p>
     <p><strong>LinkedIn</strong><br><a href="${LINKEDIN}">linkedin.com/in/silverdaniel</a></p>
     <p><strong>Location</strong><br>Melbourne, Victoria. Working Australia-wide.</p>
-    <p><strong>Response time</strong><br>Within one business day.</p></div>
+    <p><strong>Response time</strong><br>Within one business day.</p>${reviewBadge(TRUST)}</div>
 </div></section>`,
+  });
+
+  page({
+    url: "/partners/", title: "Partners and referrals", trail: [["/partners/", "Partners"]], strip: false,
+    description: "SiteGuard Systems partners and affiliates, how referrals and referral fees work, and how to become a partner.",
+    body: `${head([["/partners/", "Partners"]], "Partners and referrals", "The businesses we work alongside, how referrals work, and how to become a partner.")}
+${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "SiteGuard" })}`,
   });
 
   page({
@@ -366,7 +384,7 @@ async function main() {
 /assets/*
   Cache-Control: public, max-age=86400
 `);
-  await writeFile(path.join(DIST, "_redirects"), `/index.html / 301\n/services /services/ 301\n/library /library/ 301\n/about /about/ 301\n/contact /contact/ 301\n`);
+  await writeFile(path.join(DIST, "_redirects"), `/index.html / 301\n/services /services/ 301\n/library /library/ 301\n/about /about/ 301\n/contact /contact/ 301\n/partners /partners/ 301\n`);
   console.log(`Built ${pages.length} pages into dist/`);
   const blocking = problems.filter((p) => PRODUCTION || !/open item/.test(p));
   for (const p of problems) console.log(`  ${blocking.includes(p) ? "ERROR" : "note "}: ${p}`);

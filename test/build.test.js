@@ -22,7 +22,7 @@ test("the brief's pages exist", () => {
   const have = new Set(pages.map((p) => p.f));
   for (const p of ["index.html", "services/index.html", "services/subcontractors/index.html", "services/builders/index.html",
     "services/iso-ims/index.html", "services/leadership-advisory/index.html", "library/index.html", "about/index.html",
-    "contact/index.html", "legal/disclaimer/index.html", "legal/privacy/index.html", "404.html"]) assert.ok(have.has(p), p);
+    "contact/index.html", "partners/index.html", "legal/disclaimer/index.html", "legal/privacy/index.html", "404.html"]) assert.ok(have.has(p), p);
 });
 
 test("every page: title, description, canonical, one h1, skip link, no inline script or style", () => {
@@ -60,4 +60,11 @@ test("Cloudflare headers set CSP, HSTS and frame denial", async () => {
   assert.match(h, /connect-src 'self' https:\/\//);
   assert.match(h, /Strict-Transport-Security/);
   assert.match(h, /X-Frame-Options: DENY/);
+});
+
+test("partners page: partner enquiry form posts to /api/lead as a partner enquiry", () => {
+  const html = pages.find((p) => p.f === "partners/index.html").html;
+  assert.match(html, /data-endpoint="https:\/\/[^"]+\/api\/lead"/);
+  assert.match(html, /name="enquiry_type" value="partner"/);
+  assert.match(html, /How referrals work/);
 });

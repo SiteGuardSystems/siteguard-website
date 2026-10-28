@@ -9,6 +9,20 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | Library numbers and "from" prices | `data/site-facts.json`, written by Hseq-Dev `docs/build_catalogue.py --website <this repo>/data` |
 | Legal pages | `content/legal/`, copied from SiteGuard-Forms `app/server/data/legal` by `npm run sync-legal -- <path>` |
 | Enquiry form | posts to the storefront's `/api/lead` (`LEAD_ENDPOINT`, default `https://www.siteguardforms.com.au/api/lead`) |
+| Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
+| Google review link and rating | `data/google-reviews.json`, same way |
+
+## Partners, affiliates and Google reviews
+
+`scripts/lib/trust.mjs` (the same file is in SiteGuard-Forms-Storefront):
+
+- **Partner strip** above the footer on every page, linking to `/partners/`. It only appears once `data/partners.json` lists at least one active partner for `"systems"`.
+- **`/partners/`**: partners and affiliates, how referrals and referral fees work, and a partner enquiry form. The form posts to `/api/lead` with `enquiry_type=partner`, and the CRM files it as a partner application.
+- **Referral links**: a partner sends people to `https://www.siteguardsystems.com.au/?ref=CODE`. The code is kept for that visit (`sessionStorage`, no cookie) and sent with any enquiry, so the CRM can credit the partner.
+- **Paid links** (any `fee` other than `none`) carry `rel="sponsored"` and say on the listing that a referral fee may apply.
+- **Google review badge** in the footer, on `/contact/` and on `/partners/`. "Review us on Google" appears once `place_id` (or `review_url`) is set. The star rating appears only with `rating`, `count` and `as_of`, the date it was read off the profile. A production build fails if that date is more than 120 days old. The site doesn't use review structured data, because Google doesn't show self-published review markup for a business's own site.
+- **Logos** go in `assets/partners/` (the CSP allows local images only).
+- **Preview with sample data:** `node build.mjs --sample-partners` (fictional listings marked "(sample)"). `--production` refuses it.
 
 ## Cloudflare Pages settings (Dan, once, before merging)
 
