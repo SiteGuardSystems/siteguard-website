@@ -15,6 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { esc, frontMatter, render, plain, PLACEHOLDER_RE } from "./scripts/lib/md.mjs";
 import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/lib/trust.mjs";
+import { loadVideo, introVideo, videoJsonLd, withVideoCsp } from "./scripts/lib/video.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
@@ -23,6 +24,9 @@ const SAMPLE_PARTNERS = process.argv.includes("--sample-partners");
 // Partners, affiliates and the Google review link (data/partners.json,
 // data/google-reviews.json; scripts/lib/trust.mjs). Loaded in build().
 let TRUST = { partners: [], reviews: {} };
+// Landing-page introduction video (data/intro-video.json;
+// scripts/lib/video.mjs). Nothing shows until it is filled in.
+let VIDEO = null;
 const ORIGIN = (process.env.SITE_ORIGIN ?? "https://www.siteguardsystems.com.au").replace(/\/$/, "");
 const FORMS = (process.env.FORMS_URL ?? "https://www.siteguardforms.com.au").replace(/\/$/, "");
 const LEAD_ENDPOINT = process.env.LEAD_ENDPOINT ?? `${FORMS}/api/lead`;
@@ -171,6 +175,9 @@ async function build() {
   TRUST = await loadTrust(ROOT, "systems", { sample: SAMPLE_PARTNERS });
   for (const p of TRUST.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
   if (SAMPLE_PARTNERS) problems.push(`data: built with SAMPLE partners and reviews (--sample-partners)${PRODUCTION ? "; a production build can't use sample data" : " (open item: preview only)"}`);
+  const vid = await loadVideo(ROOT);
+  VIDEO = vid.video;
+  for (const p of vid.problems) problems.push(`data: ${p}`);
   const facts = JSON.parse(await readFile(path.join(ROOT, "data/site-facts.json"), "utf8"));
   const f = facts.facts;
   const fromP = facts.preview ? {} : facts.from_prices; // a preview catalogue never sets public prices
@@ -181,7 +188,8 @@ async function build() {
     jsonld: [{ "@context": "https://schema.org", "@type": "ProfessionalService", name: "SiteGuard Systems", url: ORIGIN,
       logo: ORIGIN + "/assets/apple-touch-icon.png", email: EMAIL, areaServed: "AU",
       address: { "@type": "PostalAddress", addressLocality: "Melbourne", addressRegion: "VIC", addressCountry: "AU" },
-      founder: { "@type": "Person", name: "Daniel Silver", hasCredential: CREDENTIAL }, sameAs: [LINKEDIN] }],
+      founder: { "@type": "Person", name: "Daniel Silver", hasCredential: CREDENTIAL }, sameAs: [LINKEDIN] },
+      ...(VIDEO ? [videoJsonLd(VIDEO, ORIGIN)] : [])],
     body: `<section class="hero"><div class="wrap">
   <h1>HSEQ systems that hold up on site.</h1>
   <p class="lede">Senior HSEQ consulting and controlled documentation for Australian construction, from a single SWMS for a subcontractor to an ISO-aligned integrated management system.</p>
@@ -193,6 +201,7 @@ async function build() {
     <div><dt>Legislative review</dt><dd>6-monthly</dd></div>
   </dl>
 </div></section>
+${introVideo(VIDEO, { heading: "Meet SiteGuard Systems" })}
 <section class="band band-grey"><div class="wrap">
   <h2>Who we help</h2>
   <p class="lede">Subcontractors and small builders, tier 2 and tier 3 builders, head and principal contractors, organisations working towards ISO, and HSEQ consultants.</p>
@@ -375,7 +384,7 @@ async function main() {
   // Cloudflare Pages headers and redirects.
   const connect = new URL(LEAD_ENDPOINT).origin;
   await writeFile(path.join(DIST, "_headers"), `/*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self' ${connect}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+  Content-Security-Policy: ${withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self' ${connect}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO)}
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
