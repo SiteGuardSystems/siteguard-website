@@ -15,7 +15,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { esc, frontMatter, render, plain, PLACEHOLDER_RE } from "./scripts/lib/md.mjs";
 import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/lib/trust.mjs";
-import { loadVideo, introVideo, videoJsonLd, withVideoCsp } from "./scripts/lib/video.mjs";
+import { loadVideo, introVideo, videoJsonLd, withVideoCsp, withCspSources } from "./scripts/lib/video.mjs";
+import { loadEducation, educationBody, educationCsp, educationJsonLd } from "./scripts/lib/education.mjs";
+import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
@@ -27,6 +29,11 @@ let TRUST = { partners: [], reviews: {} };
 // Landing-page introduction video (data/intro-video.json;
 // scripts/lib/video.mjs). Nothing shows until it is filled in.
 let VIDEO = null;
+// Planning calendar and inspection planner (data/planning-calendar.json,
+// data/inspection-planner.json; scripts/lib/planning.mjs). /planning/.
+let PLANNING = { cal: null, insp: null };
+// SiteGuard Education hub (data/education.json; scripts/lib/education.mjs).
+let EDU = null;
 const ORIGIN = (process.env.SITE_ORIGIN ?? "https://www.siteguardsystems.com.au").replace(/\/$/, "");
 const FORMS = (process.env.FORMS_URL ?? "https://www.siteguardforms.com.au").replace(/\/$/, "");
 const LEAD_ENDPOINT = process.env.LEAD_ENDPOINT ?? `${FORMS}/api/lead`;
@@ -46,7 +53,7 @@ const problems = [];
 const money = (n) => "$" + Number(n).toLocaleString("en-AU");
 
 const NAV = [
-  ["/services/", "Services"], ["/library/", "Document library"], ["/about/", "About"], ["/contact/", "Contact"],
+  ["/services/", "Services"], ["/library/", "Document library"], ["/planning/", "Planning"], ["/education/", "Education"], ["/about/", "About"], ["/contact/", "Contact"],
 ];
 
 function header(url) {
@@ -67,7 +74,7 @@ function footer() {
     <div><h2>Services</h2><ul>
       <li><a href="/services/subcontractors/">Subcontractors</a></li><li><a href="/services/builders/">Builders</a></li>
       <li><a href="/services/iso-ims/">ISO and IMS</a></li><li><a href="/services/leadership-advisory/">Leadership and risk advisory</a></li></ul></div>
-    <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li><li><a href="/partners/">Partners and referrals</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
+    <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li><li><a href="/partners/">Partners and referrals</a></li><li><a href="/planning/">Planning calendar</a></li><li><a href="/education/">SiteGuard Education</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
     <div><h2>Legal</h2><ul><li><a href="/legal/disclaimer/">Website Disclaimer</a></li><li><a href="/legal/privacy/">Privacy Policy</a></li><li><a href="/legal/website-terms/">Website Terms of Use</a></li></ul></div>
   </div>
   <p class="footer-base">SiteGuard provides frameworks, systems and advisory support. Work health and safety duties stay with the person conducting the business or undertaking.<br>© ${new Date().getFullYear()} SiteGuard Systems · ABN 36 765 797 871</p>
@@ -178,6 +185,11 @@ async function build() {
   const vid = await loadVideo(ROOT);
   VIDEO = vid.video;
   for (const p of vid.problems) problems.push(`data: ${p}`);
+  PLANNING = await loadPlanning(ROOT);
+  const edu = await loadEducation(ROOT);
+  EDU = edu.edu;
+  for (const p of edu.problems) problems.push(`data: ${p}`);
+  for (const p of PLANNING.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
   const facts = JSON.parse(await readFile(path.join(ROOT, "data/site-facts.json"), "utf8"));
   const f = facts.facts;
   const fromP = facts.preview ? {} : facts.from_prices; // a preview catalogue never sets public prices
@@ -221,6 +233,58 @@ ${introVideo(VIDEO, { heading: "Meet SiteGuard Systems" })}
   <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Send an enquiry</a><a class="btn btn-inv" href="mailto:${EMAIL}">${EMAIL}</a></div>
 </div></section>`,
   });
+
+  if (EDU) page({
+    url: "/education/", title: "SiteGuard Education: construction safety videos", trail: [["/education/", "SiteGuard Education"]],
+    description: "SiteGuard Education videos for Australian construction: introductions, how-tos, toolbox talks and inductions, also on YouTube.",
+    jsonld: [educationJsonLd(EDU, ORIGIN)],
+    body: `${head([["/education/", "SiteGuard Education"]], "SiteGuard Education", "Practical HSEQ videos for Australian construction. Watch here, or subscribe on YouTube for new videos.")}
+${educationBody(EDU)}`,
+  });
+
+  {
+    const CTA = `<section class="band band-ink"><div class="wrap">
+  <h2>Want this built into your system?</h2>
+  <p class="lede">We set up inspection registers, schedules and reminders that fit your sites and your plant.</p>
+  <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Send an enquiry</a></div>
+</div></section>`;
+    const T = [["/planning/", "Planning calendar"]];
+    page({
+      url: "/planning/", title: "Planning calendar: holidays, RDOs and the safety calendar", trail: T,
+      description: "Public holidays and building industry RDOs for every state, national safety initiatives and industry events, and an inspection and testing planner.",
+      body: `${head(T, "Planning calendar", "Plan the year around public holidays, building industry RDOs and the safety calendar, and keep inspections and testing on schedule.")}
+${planningIndexBody(PLANNING)}
+${CTA}`,
+    });
+    for (const st of STATES) {
+      const tr = [...T, [statePath(st), STATE_NAMES[st]]];
+      page({
+        url: statePath(st), title: `${STATE_NAMES[st]} public holidays and building industry RDOs`, trail: tr,
+        description: `${STATE_NAMES[st]} public holidays and building and construction industry RDO dates, with national safety initiatives and industry events. Add them to your calendar.`,
+        body: `${head(tr, `${STATE_NAMES[st]} planning calendar`, `Public holidays, building industry rostered days off, safety initiatives and industry events for ${STATE_NAMES[st]}.`)}
+${planningStateBody(PLANNING, st)}
+${CTA}`,
+      });
+    }
+    const ti = [...T, ["/planning/inspections/", "Inspection and testing planner"]];
+    page({
+      url: "/planning/inspections/", title: "Inspection and testing planner: how often, and on what basis", trail: ti,
+      description: "How often workplace equipment and systems are inspected and tested in Australia, with the Act, regulation, standard or code of practice behind each interval.",
+      body: `${head(ti, "Inspection and testing planner", "How often common workplace items are inspected or tested, and whether that comes from the law, an Australian Standard, a code of practice or good practice.")}
+${inspectionsIndexBody(PLANNING)}
+${CTA}`,
+    });
+    for (const g of inspectionGroups(PLANNING.insp)) {
+      const tg = [...ti, [groupPath(g.slug), g.title]];
+      page({
+        url: groupPath(g.slug), title: `${g.title}: inspection and testing intervals`, trail: tg,
+        description: `How often ${g.title.toLowerCase()} items are inspected and tested in Australia, with the regulation, standard or code of practice behind each interval and the Victorian differences.`,
+        body: `${head(tg, `${g.title}: inspection and testing`, "")}
+${inspectionGroupBody(PLANNING, g.slug)}
+${CTA}`,
+      });
+    }
+  }
 
   page({
     url: "/services/", title: "Services", trail: [["/services/", "Services"]],
@@ -374,17 +438,18 @@ async function main() {
     if (titles.has(p.title)) problems.push(`${p.url}: duplicate title`);
     titles.add(p.title);
     for (const [, href] of p.html.matchAll(/href="(\/[^"#?]*)/g)) {
-      if (!href.startsWith("/assets/") && !urls.has(href)) problems.push(`${p.url}: broken link ${href}`);
+      if (!href.startsWith("/assets/") && !href.endsWith(".ics") && !urls.has(href)) problems.push(`${p.url}: broken link ${href}`);
     }
     if (Buffer.byteLength(p.html) > 100_000) problems.push(`${p.url}: over 100 KB`);
   }
+  for (const st of STATES) await writeFile(path.join(DIST, "planning", `siteguard-planning-${st.toLowerCase()}.ics`), icsFor(PLANNING, st, { origin: ORIGIN, brand: "SiteGuard Systems" }));
   const listed = pages.filter((p) => !p.url.endsWith(".html"));
   await writeFile(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.map((p) => `  <url><loc>${ORIGIN}${p.url}</loc></url>`).join("\n")}\n</urlset>\n`);
   await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${ORIGIN}/sitemap.xml\n`);
   // Cloudflare Pages headers and redirects.
   const connect = new URL(LEAD_ENDPOINT).origin;
   await writeFile(path.join(DIST, "_headers"), `/*
-  Content-Security-Policy: ${withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self' ${connect}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO)}
+  Content-Security-Policy: ${withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self' ${connect}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU))}
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
@@ -392,8 +457,11 @@ async function main() {
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
 /assets/*
   Cache-Control: public, max-age=86400
+/planning/*.ics
+  Content-Type: text/calendar; charset=utf-8
+  Cache-Control: public, max-age=3600
 `);
-  await writeFile(path.join(DIST, "_redirects"), `/index.html / 301\n/services /services/ 301\n/library /library/ 301\n/about /about/ 301\n/contact /contact/ 301\n/partners /partners/ 301\n`);
+  await writeFile(path.join(DIST, "_redirects"), `/index.html / 301\n/services /services/ 301\n/library /library/ 301\n/about /about/ 301\n/contact /contact/ 301\n/partners /partners/ 301\n/planning /planning/ 301\n/education /education/ 301\n`);
   console.log(`Built ${pages.length} pages into dist/`);
   const blocking = problems.filter((p) => PRODUCTION || !/open item/.test(p));
   for (const p of problems) console.log(`  ${blocking.includes(p) ? "ERROR" : "note "}: ${p}`);

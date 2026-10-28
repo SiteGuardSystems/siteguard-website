@@ -34,6 +34,15 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 - The CSP opens `frame-src https://www.youtube-nocookie.com` (and `img-src https://i.ytimg.com` when there's no local poster) only when a YouTube video is set. A `VideoObject` is added to the home page's JSON-LD.
 - An incomplete entry fails the build and nothing is shown.
 
+## Planning calendar and SiteGuard Education
+
+`scripts/lib/planning.mjs` and `scripts/lib/education.mjs` are the same in both SiteGuard sites, and so are their data files (copy any change to both repos).
+
+- **Planning calendar** (`data/planning-calendar.json`): public holidays and building industry RDOs per state, plus national safety initiatives and industry events. Every entry cites a source; entries without an announced date carry a `month` and show as "Date to be confirmed". Pages: `/planning/` (choose a state; national safety calendar), `/planning/<state>/` (with a subscribable `.ics` file per state) and `/planning/inspections/`.
+- **Inspection and testing planner** (`data/inspection-planner.json`): interval, basis (Mandatory, Standard, Code of practice, Manufacturer, Good practice), reference and state notes for each item.
+- Both files carry a `checked` date. A production build fails once it's more than 200 days old: re-check the entries against their sources (RDO calendars and 2027 dates are released through the year), then update `checked`.
+- **SiteGuard Education** (`data/education.json`): `/education/`, grouped videos (same fields as `intro-video.json`) and the YouTube channel button. A group with no videos isn't shown.
+
 ## Cloudflare Pages settings (Dan, once, before merging)
 
 The current live site is the old root `index.html`, which this branch leaves in
