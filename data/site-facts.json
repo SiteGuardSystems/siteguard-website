@@ -1,12 +1,12 @@
 {
- "generated_at": "2026-10-30T02:28:28+00:00",
+ "generated_at": "2026-10-30T03:23:25+00:00",
  "preview": false,
  "pricing_revision": "Rev03 -- 2026-10-18",
  "facts": {
-  "documents": 780,
+  "documents": 781,
   "documents_rounded": "780+",
   "by_family": {
-   "Form": 226,
+   "Form": 227,
    "SWMS": 215,
    "ITP": 123,
    "Register": 112,
@@ -22,7 +22,7 @@
   "trade-packs": 390,
   "builder-packs": 2390,
   "management-systems": 349,
-  "specialist-packs": 390,
+  "specialist-packs": 349,
   "consultants": 3990
  },
  "trades": [
