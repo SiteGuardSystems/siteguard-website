@@ -1,5 +1,7 @@
 {
- "generated_at": "2026-10-30T03:23:25+00:00",
+ "generated_at": "2026-10-31T01:54:39+00:00",
+ "dcr_revision": 23,
+ "dcr_sha256": "8a8db29c7753ded334f8170bb20b1029fe94e414667e027bc10ffc0e0670a7af",
  "preview": false,
  "pricing_revision": "Rev03 -- 2026-10-18",
  "facts": {
