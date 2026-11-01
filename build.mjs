@@ -23,6 +23,7 @@ import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, edu
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
 import { loadSiteMode, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages } from "./scripts/lib/app-pages.mjs";
+import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
@@ -539,21 +540,10 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
     if (MODE.app_status === "presale") problems.push("/app/founding-offer/: the founding offer terms (SG-LEGAL-13) are not published yet; solicitor review pending (open item)");
   }
 
-  // SiteGuard Audit hub (filled out in WP-S5).
-  for (const [url, name, interest, lede, items] of [
-    ["/audit/", "SiteGuard Audit", "audit", "Audits and inspections for consultants and businesses: run the checklist on site, take photos, record findings and corrective actions, and issue the report.",
-      ["Unlimited clients and audits for each auditor", "A checklist library built from SiteGuard's controlled forms", "Findings and corrective actions in a register per client and project", "Works on site without a signal"]],
-  ]) {
-    page({
-      url, title: `${name}: ${interest === "app" ? "HSEQ software for trades and builders" : "audits and inspections"}`, trail: [[url, name]],
-      description: lede,
-      body: `${head([[url, name]], name, lede)}
-<section class="band"><div class="wrap cols">
-  <div><h2>What it does</h2><ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
-  <div>${appWhen({ cls: "note status-line" })}<div class="btn-row">${buyButton(interest)}</div></div>
-</div></section>`,
-    });
-  }
+  // SiteGuard Audit (scripts/lib/audit-pages.mjs, data/audit-checklists.json).
+  const ac = await loadAuditChecklists(ROOT);
+  for (const p of ac.problems) problems.push(`data: ${p}`);
+  if (ac.checklists) for (const spec of auditPages(ac.checklists, { mode: MODE, head, buy: buyButton, when: appWhen, app: ap.app, related: relatedVideos })) page(spec);
 
   if (MODE.app_status !== "live") {
     page({

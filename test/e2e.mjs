@@ -26,7 +26,7 @@ const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 const errors = [];
 // Every page type at 360 px: no sideways scroll.
 const PAGES_360 = ["/", "/consulting/", "/consulting/iso-ims/", "/consulting/retainers/", "/library/", "/about/", "/contact/", "/legal/privacy/",
-  "/app/", "/app/trade-packages/", "/app/trade-packages/civil-works/", "/app/builder-bundles/", "/app/safety/", "/audit/", "/register-interest/", "/planning/", "/planning/vic/", "/education/"];
+  "/app/", "/app/trade-packages/", "/app/trade-packages/civil-works/", "/app/builder-bundles/", "/app/safety/", "/audit/", "/audit/checklists/", "/register-interest/", "/planning/", "/planning/vic/", "/education/"];
 try {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } });
   page.on("pageerror", (e) => errors.push(e.message));

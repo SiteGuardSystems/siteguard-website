@@ -27,7 +27,7 @@ test("the brief's pages exist", () => {
     "consulting/retainers/index.html", "consulting/ims-tier-1-uplift/index.html", "library/index.html", "about/index.html",
     "contact/index.html", "partners/index.html", "legal/disclaimer/index.html", "legal/privacy/index.html", "404.html",
     "app/index.html", "app/trade-packages/index.html", "app/builder-bundles/index.html", "app/safety/index.html", "app/quality/index.html",
-    "app/environmental/index.html", "app/management/index.html", "audit/index.html", "register-interest/index.html", "planning/index.html", "education/index.html"]) assert.ok(have.has(p), p);
+    "app/environmental/index.html", "app/management/index.html", "audit/index.html", "audit/checklists/index.html", "register-interest/index.html", "planning/index.html", "education/index.html"]) assert.ok(have.has(p), p);
 });
 
 test("every page: title, description, canonical, one h1, skip link, no inline script or style", () => {
@@ -135,4 +135,15 @@ test("SiteGuard App: a page for every trade in data/app-packages.json, module lo
   }
   for (const m of ["safety", "quality", "environmental", "management"]) assert.match(get(`app/${m}/index.html`), new RegExp(`<img src="/assets/brand/sg-${m}-lockup.png"`));
   for (const { f, html } of pages) assert.ok(!/\bSG-[A-Z]-[A-Z]{3}-|\bAU-\d\d\b|\bNEW-\d/.test(html), `${f}: internal document code`);
+});
+
+test("SiteGuard Audit: counts from data/audit-checklists.json, the Audit lockup, unlimited clients and audits", async () => {
+  const cl = JSON.parse(await readFile(path.join(ROOT, "data/audit-checklists.json"), "utf8"));
+  assert.equal(Object.values(cl.by_type).reduce((a, b) => a + b, 0), cl.checklists);
+  const hub = get("audit/index.html");
+  assert.ok(hub.includes(`${cl.checklists.toLocaleString("en-AU")} checklists`));
+  assert.match(hub, /<img src="\/assets\/brand\/sg-audit-lockup.png"/);
+  assert.match(hub, /Unlimited clients and audits/);
+  const lib = get("audit/checklists/index.html");
+  for (const [k, v] of Object.entries(cl.by_type)) assert.ok(lib.includes(`<td>${k}</td><td>${v.toLocaleString("en-AU")}</td>`), k);
 });

@@ -69,6 +69,7 @@ test("presale: pre-launch lines say founding places are on sale", () => {
   const pricing = pages.get("app/pricing/index.html");
   for (const p of ["A$196", "A$271", "A$496", "A$910", "A$1,279", "A$1,757", "A$75"]) assert.ok(pricing.includes(`${p} a month <small>+GST</small>`), p);
   assert.match(pages.get("app/trade-packages/concrete/index.html"), /A\$196 a month <small>\+GST<\/small>/);
+  assert.match(pages.get("audit/index.html"), /A\$75 a month <small>\+GST<\/small>/);
   assert.match(pages.get("index.html"), /class="cart-link nav-status" href="\/app\/founding-offer\/">Founding places</);
 });
 
