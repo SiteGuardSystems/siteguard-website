@@ -14,6 +14,19 @@ jobs:
       - run: npm install
       - name: Build and checks (links, banned words, page size, headers)
         run: npm test
+      # WP-S1: the same dcr-check as SiteGuard-Forms-Storefront. The public
+      # page-A DCR extract pinned in dcr.lock (vendored, no network or secrets)
+      # against data/, content/ and the site's code: fails on a hash mismatch, a
+      # code that doesn't resolve, a retired code shown or sold, a title that
+      # differs from the DCR, a catalogue stamped with another revision or not
+      # stamped, and a generated catalogue.json edited by hand.
+      - name: dcr-check
+        run: |
+          rc=0
+          npm run --silent dcr-check > dcr-check.txt || rc=$?
+          cat dcr-check.txt
+          { echo '### dcr-check'; echo '```'; cat dcr-check.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
       - name: Browser end-to-end
         run: |
           npx playwright install --with-deps chromium

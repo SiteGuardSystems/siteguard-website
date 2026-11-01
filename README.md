@@ -7,6 +7,8 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | What | Source |
 |---|---|
 | Library numbers and "from" prices | `data/site-facts.json`, written by Hseq-Dev `docs/build_catalogue.py --website <this repo>/data` |
+| The full catalogue: FORMS packs, documents and prices, and the SiteGuard App products (group `"app"`: trade packages, builder bundles, AUDIT seat) | `data/catalogue.json`, written by the same command (WP-S1). Never edit it by hand: `dcr-check` fails a hand edit. The app prices on the App pages (`data/app-packages.json`, interim, from the workbook) must equal its group `"app"`, or the build fails |
+| Document codes and titles | the public DCR extract pinned in `dcr.lock` (see "DCR" below) |
 | Legal pages | `content/legal/`, copied from SiteGuard-Forms `app/server/data/legal` by `npm run sync-legal -- <path>` |
 | Enquiry form | posts to the storefront's `/api/lead` (`LEAD_ENDPOINT`, default `https://www.siteguardforms.com.au/api/lead`) |
 | Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
@@ -27,6 +29,14 @@ Same file and shape as the storefront's (`beta`), plus `app_status` for the Site
 Pre-launch wording ("coming soon", "launching", "Opens June 2027") is allowed only inside elements marked `data-status-copy` (`statusCopy()` in `site-mode.mjs`), so it can be found and removed when the status changes. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
 
 The header cart is in the markup but hidden until checkout exists (`CART_ENABLED` in `build.mjs`).
+
+## DCR
+
+The same check as SiteGuard-Forms-Storefront (its README has the detail). This repo is public, so it never holds the full DCR: `dcr.lock` pins siteguard-dcr's public page-A extract (Rev23, `vendor/siteguard-dcr/public/rev23/dcr-public.json`) by sha256. `scripts/lib/dcr.mjs` and `scripts/dcr-check.mjs` are the storefront's files, unchanged; keep them identical in both repos.
+
+- **The build** verifies the extract first and stops on a hash mismatch, then fails if `data/catalogue.json` shows or sells a code that isn't a live public code, if a title differs from the DCR title, or if its `dcr_revision` / `dcr_sha256` stamp is missing or differs from `dcr.lock`.
+- **CI** runs `npm run dcr-check` over `data/`, `content/`, `scripts/`, `assets/` and `build.mjs`. Real drift goes in `dcr.allowlist.json` with a reason; never edit product data to pass.
+- **Bumping the DCR:** copy `public/revNN/` from siteguard-dcr into `vendor/siteguard-dcr/public/`, set `dcr.lock`, re-check `dcr.allowlist.json`, and regenerate the catalogue in Hseq-Dev against the same revision. Do it in both sites in the same change.
 
 ## Partners, affiliates and Google reviews
 

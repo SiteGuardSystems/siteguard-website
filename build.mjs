@@ -2,7 +2,9 @@
 // Builds siteguardsystems.com.au into dist/ (Cloudflare Pages: build command
 // "node build.mjs", output directory "dist"). Static pages with a shared
 // head, header and footer. Numbers and "from" prices come from
-// data/site-facts.json, written by Hseq-Dev docs/build_catalogue.py; legal
+// data/site-facts.json, and the full catalogue (the FORMS packs and the
+// SiteGuard App products, group "app") from data/catalogue.json, both written
+// by Hseq-Dev docs/build_catalogue.py --website; legal
 // pages come from content/legal/, copied from SiteGuard-Forms (the one legal
 // source) by scripts/sync-legal.mjs.
 //
@@ -24,10 +26,12 @@ import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBod
 import { loadSiteMode, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages } from "./scripts/lib/app-pages.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
+import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
 const PRODUCTION = process.argv.includes("--production");
+const CATALOGUE = process.env.CATALOGUE_PATH ? path.resolve(process.env.CATALOGUE_PATH) : path.join(ROOT, "data/catalogue.json");
 const SAMPLE_PARTNERS = process.argv.includes("--sample-partners");
 const argValue = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 // Status switch (data/site-mode.json; scripts/lib/site-mode.mjs). Loaded in build().
@@ -108,6 +112,49 @@ const HOME_DOORS = () => [
 
 const pages = [];
 const problems = [];
+// DCR warnings (a retired code neither shown nor sold): reported, never blocking.
+const dcrWarnings = [];
+let DCR_PIN = null;
+
+/** The public DCR extract pinned in dcr.lock (vendored; the same check as the
+ *  storefront): the build stops if it doesn't verify, and fails on a code the
+ *  catalogue shows or sells that isn't a live public page-A code, a title that
+ *  differs from the DCR, or a catalogue without the dcr.lock stamp. The DCR
+ *  never decides what is sold or its price. */
+function checkDcr(cat) {
+  let pinned;
+  try {
+    pinned = loadPinned(ROOT);
+  } catch (e) {
+    console.error(`DCR: the public extract pinned in dcr.lock does not verify: ${e.message}`);
+    console.error("Fix vendor/siteguard-dcr or dcr.lock (see README, \"DCR\"). The build stops here.");
+    process.exit(1);
+  }
+  DCR_PIN = { revision: pinned.dcr.revision, sha256: pinned.dcr.sourceSha256, public_sha256: pinned.dcr.sha256 };
+  for (const f of checkCatalogue(cat, pinned)) {
+    if (f.severity === "error") problems.push(`DCR: [${f.kind}] ${f.message}`);
+    else dcrWarnings.push(f);
+  }
+}
+
+/** The app prices on the SiteGuard App pages (data/app-packages.json, from the
+ *  workbook) must equal the catalogue's group "app" (Hseq-Dev
+ *  docs/pricing/app_price_table.json). */
+export function appPriceDrift(app, cat) {
+  const out = [];
+  const byId = new Map((cat.packs ?? []).filter((p) => p.group === "app").map((p) => [p.id, p]));
+  const want = [
+    ...(app?.levels ?? []).map((l) => [`app:trade:${l.slug}`, l.price_month]),
+    ...(app?.bundles ?? []).map((b) => [`app:bundle:${b.slug.replace(/^builder-/, "")}`, b.price_month]),
+    ...(app?.audit ? [["app:audit:seat", app.audit.seat_month]] : []),
+  ];
+  for (const [id, price] of want) {
+    const p = byId.get(id);
+    if (!p) out.push(`catalogue.json has no app product ${id} (app-packages.json prices it at ${price})`);
+    else if (p.app_prices?.per_month !== price) out.push(`app-packages.json prices ${id} at ${price} a month, catalogue.json at ${p.app_prices?.per_month}`);
+  }
+  return out;
+}
 const money = (n) => "$" + Number(n).toLocaleString("en-AU");
 
 // Main menu: Consulting · SiteGuard App · SiteGuard Audit · Education · Planner
@@ -344,6 +391,9 @@ async function build() {
   const facts = JSON.parse(await readFile(path.join(ROOT, "data/site-facts.json"), "utf8"));
   const f = facts.facts;
   const fromP = facts.preview ? {} : facts.from_prices; // a preview catalogue never sets public prices
+  const cat = JSON.parse(await readFile(CATALOGUE, "utf8"));
+  checkDcr(cat);
+  if (PRODUCTION && cat.preview) problems.push("catalogue.json is a PREVIEW build (generated with --preview); regenerate without it");
 
   page({
     url: "/", title: "SiteGuard Systems | HSEQ consulting for Australian construction",
@@ -575,6 +625,7 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
   // SiteGuard App (scripts/lib/app-pages.mjs, data/app-packages.json).
   const ap = await loadAppPackages(ROOT);
   for (const p of ap.problems) problems.push(`data: ${p}`);
+  for (const p of appPriceDrift(ap.app, cat)) problems.push(`data: ${p}`);
   if (ap.app) {
     for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos })) page(spec);
     if (MODE.app_status === "presale") problems.push("/app/founding-offer/: the founding offer terms (SG-LEGAL-13) are not published yet; solicitor review pending (open item)");
@@ -671,6 +722,9 @@ async function main() {
   console.log(`Built ${pages.length} pages into dist/`);
   const blocking = problems.filter((p) => PRODUCTION || !/open item/.test(p));
   for (const p of problems) console.log(`  ${blocking.includes(p) ? "ERROR" : "note "}: ${p}`);
+  if (DCR_PIN) console.log(`  DCR Rev${rev2(DCR_PIN.revision)} public extract verified (sha256 ${DCR_PIN.public_sha256}; from dcr.json ${DCR_PIN.sha256})`);
+  for (const f of dcrWarnings.slice(0, 3)) console.log(`  warn : DCR [${f.kind}] ${f.message}`);
+  if (dcrWarnings.length > 3) console.log(`  warn : DCR ${dcrWarnings.length} warnings in all (npm run dcr-check lists them)`);
   if (blocking.length) { console.error(`${blocking.length} problem(s) must be fixed.`); process.exit(1); }
 }
 
