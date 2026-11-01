@@ -12,6 +12,22 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
 | Google review link and rating | `data/google-reviews.json`, same way |
 
+## Status switch (`data/site-mode.json`)
+
+Same file and shape as the storefront's (`beta`), plus `app_status` for the SiteGuard App and SiteGuard Audit (`scripts/lib/site-mode.mjs`):
+
+| Key | Value | Effect |
+|---|---|---|
+| `beta` | `true` | SiteGuard FORMS shows as the unlinked label "SiteGuard FORMS: coming soon" |
+| | `false` | a link to siteguardforms.com.au; the build fails if the coming-soon label is left anywhere |
+| `app_status` | `coming_soon` | no app or audit prices anywhere; every buy button is "Register interest"; the header status button goes to `/register-interest/` |
+| | `presale` | founding places on sale (from March 2027): prices, the pricing page and the founding offer page show |
+| | `live` | the app modules are open (June 2027); the build fails if any pre-launch wording is left |
+
+Pre-launch wording ("coming soon", "launching", "Opens June 2027") is allowed only inside elements marked `data-status-copy` (`statusCopy()` in `site-mode.mjs`), so it can be found and removed when the status changes. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
+
+The header cart is in the markup but hidden until checkout exists (`CART_ENABLED` in `build.mjs`).
+
 ## Partners, affiliates and Google reviews
 
 `scripts/lib/trust.mjs` (the same file is in SiteGuard-Forms-Storefront):
@@ -62,7 +78,7 @@ retired.
 ## Checks
 
 `npm test` builds and checks every page (links, titles, banned wording, page
-size, no inline script, the exact credential wording, the enquiry endpoint,
+size, no inline script, the exact credential wording (Certificates of Attainment, rebaseline 31 Oct 2026), the enquiry endpoint,
 the headers). `npm run test:e2e` checks the 360 px layout, the menu and the
 enquiry form in a real browser. Both run in CI.
 
@@ -75,5 +91,7 @@ enquiry form in a real browser. Both run in CI.
 | No secrets | static site, no keys |
 | Links, unique titles and descriptions, canonical, sitemap, robots, JSON-LD (`ProfessionalService`, `Service`, `Person`, `BreadcrumbList`) | `build.mjs`, `test/build.test.js` |
 | Skip link, visible focus, labelled fields, no sideways scroll at 360 px | `test/build.test.js`, `test/e2e.mjs` |
-| Banned wording (`compliant`, `certified`, `endorsed`, `guarantee`, `4801`, `coming soon`, `rolling out`, `in progress`, `quarterly`; "Certified Lead Auditor" allowed) | build fails; `test/build.test.js` |
+| Banned wording (`compliant`, `certified`, `endorsed`, `guarantee`, `4801`, `coming soon`, `launching`, `rolling out`, `in progress`, `quarterly`; "coming soon" and "launching" only inside `data-status-copy` or the exact FORMS beta label; the credential line exempt) | build fails; `test/build.test.js`, `test/status.test.js` |
+| No gated products or markets (CORE, SiteGuard AI, robotics, New Zealand, Singapore, overseas) | build fails; `test/status.test.js` |
+| Redirects: all 301, every target a built page | `REDIRECTS` in `build.mjs`; build fails; `test/build.test.js` |
 | Lighthouse ≥ 90 / 95 / 90 / 95 | run against the Pages preview URL; static pages, self-hosted fonts, no third-party scripts |

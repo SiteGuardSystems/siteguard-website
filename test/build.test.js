@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { BANNED } from "../build.mjs";
+import { wordingHits, REDIRECTS, CREDENTIAL } from "../build.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
@@ -16,13 +16,17 @@ async function htmlFiles(dir = DIST) {
   }
   return out;
 }
-const pages = await Promise.all((await htmlFiles()).map(async (f) => ({ f: path.relative(DIST, f), html: await readFile(f, "utf8") })));
+const pages = await Promise.all((await htmlFiles()).map(async (f) => ({ f: path.relative(DIST, f).split(path.sep).join("/"), html: await readFile(f, "utf8") })));
+const MODE = JSON.parse(await readFile(path.join(ROOT, "data/site-mode.json"), "utf8"));
+const get = (f) => pages.find((p) => p.f === f)?.html ?? assert.fail(`missing ${f}`);
 
 test("the brief's pages exist", () => {
   const have = new Set(pages.map((p) => p.f));
-  for (const p of ["index.html", "services/index.html", "services/subcontractors/index.html", "services/builders/index.html",
-    "services/iso-ims/index.html", "services/leadership-advisory/index.html", "library/index.html", "about/index.html",
-    "contact/index.html", "partners/index.html", "legal/disclaimer/index.html", "legal/privacy/index.html", "404.html"]) assert.ok(have.has(p), p);
+  for (const p of ["index.html", "consulting/index.html", "consulting/subcontractors/index.html", "consulting/builders/index.html",
+    "consulting/iso-ims/index.html", "consulting/leadership-advisory/index.html", "consulting/audits-and-inspections/index.html",
+    "consulting/retainers/index.html", "consulting/ims-tier-1-uplift/index.html", "library/index.html", "about/index.html",
+    "contact/index.html", "partners/index.html", "legal/disclaimer/index.html", "legal/privacy/index.html", "404.html",
+    "app/index.html", "audit/index.html", "register-interest/index.html", "planning/index.html", "education/index.html"]) assert.ok(have.has(p), p);
 });
 
 test("every page: title, description, canonical, one h1, skip link, no inline script or style", () => {
@@ -40,12 +44,17 @@ test("every page: title, description, canonical, one h1, skip link, no inline sc
 test("no banned wording outside the legal pages; the credential is exact", () => {
   for (const { f, html } of pages) {
     if (f.startsWith("legal/")) continue;
-    const text = html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/Certified Lead Auditor/g, "");
-    assert.equal(text.match(BANNED), null, f);
+    assert.deepEqual(wordingHits(html, MODE), [], f);
     assert.ok(!/fully certified|AS\/NZS 4801|ABN to be confirmed|mailto:[^"]*\?/.test(html), f);
   }
-  const about = pages.find((p) => p.f === "about/index.html").html;
-  assert.ok(about.includes("Exemplar Global Certified Lead Auditor — Integrated Management Systems (ISO 9001, 14001, 45001)"));
+  // Rebaseline 31 Oct 2026: Certificate of Attainment wording, never "Certified Lead Auditor".
+  const CRED = "Certificates of Attainment for the Exemplar Global certified courses (AU, TL, QM, EM, OH 45001) via Risk Training Professionals";
+  assert.equal(CREDENTIAL, CRED);
+  assert.ok(get("about/index.html").includes(`<strong>${CRED}</strong>`));
+  const lds = [...get("about/index.html").matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map((m) => JSON.parse(m[1]));
+  assert.equal(lds.find((o) => o["@type"] === "Person").hasCredential, CRED);
+  assert.equal(JSON.parse(get("index.html").match(/<script type="application\/ld\+json">([^<]*)<\/script>/)[1]).founder.hasCredential, CRED);
+  for (const { f, html } of pages) assert.ok(!/Certified Lead Auditor/i.test(html), f);
 });
 
 test("the enquiry form posts to the storefront's /api/lead, not mailto", () => {
@@ -75,4 +84,41 @@ test("no intro video until data/intro-video.json sets one; CSP unchanged", async
   const home = pages.find((p) => p.f === "index.html").html;
   assert.ok(!/intro-video/.test(home));
   assert.ok(!/youtube/.test(await readFile(path.join(DIST, "_headers"), "utf8")));
+});
+
+test("menu: Consulting, SiteGuard App, SiteGuard Audit, Education, Planner, Forms, then Contact, the cart and the status button", () => {
+  const nav = get("index.html").match(/<nav class="nav"[\s\S]*?<\/nav>/)[0];
+  const labels = [...nav.matchAll(/<(?:a|span|button)\b[^>]*>([^<]+)/g)].map((m) => m[1].trim());
+  assert.deepEqual(labels.slice(0, 5), ["Consulting", "SiteGuard App", "SiteGuard Audit", "Education", "Planner"]);
+  assert.equal(labels[5], MODE.beta ? "SiteGuard FORMS: coming soon" : "SiteGuard FORMS");
+  assert.equal(labels[6], "Contact");
+  assert.match(nav, /<button class="nav-cart"[^>]*data-cart hidden>/); // no checkout yet
+  assert.match(nav, /class="cart-link nav-status" href="\/register-interest\/">Register interest</);
+  if (MODE.beta) assert.match(nav, /<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon<\/span>/);
+  assert.match(nav, /href="\/planning\/"[^>]*>Planner</);
+});
+
+test("_redirects: every rule is a 301 to a built page", async () => {
+  const r = await readFile(path.join(DIST, "_redirects"), "utf8");
+  const lines = r.trim().split("\n");
+  assert.equal(lines.length, REDIRECTS.length);
+  const have = new Set(pages.map((p) => "/" + p.f.replace(/index\.html$/, "")));
+  for (const line of lines) {
+    const [from, to, code] = line.split(" ");
+    assert.equal(code, "301", line);
+    assert.ok(from.startsWith("/"), line);
+    assert.ok(have.has(to.replace(/:splat$/, "")), `${line}: target not built`);
+  }
+  assert.match(r, /^\/planner \/planning\/ 301$/m);
+  assert.match(r, /^\/services\/ \/consulting\/ 301$/m);
+  assert.match(r, /^\/services\/\* \/consulting\/:splat 301$/m);
+});
+
+test("consulting: retainers at A$1,200 a month +GST and the IMS / Tier 1 uplift; about and library listed under Consulting", () => {
+  assert.match(get("consulting/retainers/index.html"), /A\$1,200 a month \+GST/);
+  assert.match(get("consulting/ims-tier-1-uplift/index.html"), /<h1>IMS and Tier 1 uplift<\/h1>/);
+  const idx = get("consulting/index.html");
+  for (const h of ["/about/", "/library/", "/consulting/audits-and-inspections/", "/consulting/retainers/"]) assert.ok(idx.includes(`href="${h}"`), h);
+  for (const f of ["about/index.html", "library/index.html", "consulting/retainers/index.html"]) assert.match(get(f), /<a href="\/consulting\/" aria-current="page">Consulting<\/a>/, f);
+  assert.match(get("library/index.html"), /Buy or commission[\s\S]*SiteGuard App[\s\S]*consulting/);
 });
