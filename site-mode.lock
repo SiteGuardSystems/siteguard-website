@@ -1,0 +1,10 @@
+{
+ "repo": "SiteGuardSystems/SiteGuard-Forms-Storefront",
+ "path": "data/site-mode.json",
+ "ref": "master",
+ "commit": "fec4999ce7ff75a6c0ae18b1bb8ab5ff37b3492e",
+ "sha256": "c48a86e5922eb1c1f7fcad2cdef971a9298e5a60d56f1ea91b63bd5e2a64d39f",
+ "beta": true,
+ "vendored_at": "vendor/siteguard-forms-storefront/data/site-mode.json",
+ "note": "Dan, 1 Nov 2026 (#94): one beta switch. The storefront's data/site-mode.json beta is the source of truth (it is the checkout engine, and refuses every FORMS order while beta is true). This site only mirrors it to hide its buy buttons and cart. Update with npm run sync-site-mode; CI's site-mode-check fails when this copy, this lock or the storefront's ref disagree."
+}

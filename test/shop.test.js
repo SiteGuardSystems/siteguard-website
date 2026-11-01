@@ -1,6 +1,7 @@
 // WP-S8: the FORMS shop and the cart on the Systems site, from the storefront's
 // own page builders (scripts/lib/shop.mjs, cart.mjs, cart-browser.js) and the
-// same catalogue.
+// same catalogue. Dan, 1 Nov 2026: the shop is browse only while FORMS is in
+// beta (#94), and the cart takes FORMS documents and packs only (#96).
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -25,19 +26,54 @@ const has = (dir, rel) => existsSync(path.join(dir, rel));
 const off = await buildWith([]);
 const betaOn = await buildWith(["--beta=true", "--checkout=true"]);
 const on = await buildWith(["--beta=false", "--checkout=true"]);
-test.after(async () => { for (const d of [off, betaOn, on]) await rm(d, { recursive: true, force: true }); });
+const openNoCheckout = await buildWith(["--beta=false", "--checkout=false"]);
+test.after(async () => { for (const d of [off, betaOn, on, openNoCheckout]) await rm(d, { recursive: true, force: true }); });
 const cat = JSON.parse(await readFile(path.join(ROOT, "data/catalogue.json"), "utf8"));
+const SHOP_PAGES = ["forms/index.html", "forms/trade-packs/index.html", "forms/builder-packs/index.html", "forms/management-systems/index.html",
+  "forms/specialist-packs/index.html", "forms/documents/index.html", "forms/subscriptions/index.html", "forms/how-ordering-works/index.html", "forms/faq/index.html"];
+const allHtml = async (dir) => {
+  const { readdir } = await import("node:fs/promises");
+  const out = [];
+  for (const e of await readdir(dir, { recursive: true, withFileTypes: true })) if (e.isFile() && e.name.endsWith(".html")) out.push([path.relative(dir, path.join(e.parentPath ?? e.path, e.name)), await readFile(path.join(e.parentPath ?? e.path, e.name), "utf8")]);
+  return out;
+};
 
-test("checkout off (the default until WP-S9), or FORMS in beta: no shop and the header cart stays hidden", async () => {
-  for (const d of [off, betaOn]) {
-    assert.ok(!has(d, "forms/index.html"));
-    assert.ok(!has(d, "cart/index.html"));
-    assert.ok(!has(d, "assets/cart.js"));
-    const home = await read(d, "index.html");
-    assert.match(home, /<button class="nav-cart" type="button" data-cart hidden>/);
-    assert.ok(!home.includes("/assets/cart.js"));
-  }
+// Dan, 1 Nov 2026 (#94): one beta switch. With beta true (the storefront's
+// switch, vendored here), the Systems site shows the FORMS shop to browse, with
+// no buy button, cart or checkout anywhere, whatever "checkout" says.
+test("FORMS in beta (the default, and with checkout on): the shop shows to browse; no buy, cart or checkout", async () => {
   assert.equal(JSON.parse(await readFile(path.join(ROOT, "data/site-mode.json"), "utf8")).checkout ?? false, false);
+  for (const d of [off, betaOn]) {
+    for (const rel of SHOP_PAGES) assert.ok(has(d, rel), rel);
+    for (const rel of ["cart/index.html", "order/success/index.html", "order/cancelled/index.html"]) assert.ok(!has(d, rel), rel);
+    for (const [f, html] of await allHtml(d)) {
+      assert.ok(!/data-add-(?:pack|doc)=/.test(html), `${f}: a buy button in beta`);
+      assert.ok(!/data-checkout|data-app-checkout/.test(html), `${f}: a checkout in beta`);
+      assert.ok(!/href="\/cart\/"/.test(html), `${f}: a cart link in beta`);
+      assert.ok(!/>Subscribe (yearly|monthly)<|>Yearly<\/a>|>Monthly<\/a>/.test(html), `${f}: a subscribe button in beta`);
+      assert.match(html, /<button class="nav-cart" type="button" data-cart hidden>/, `${f}: header cart hidden`);
+    }
+    const home = await read(d, "index.html");
+    assert.ok(home.includes('<a href="/forms/">SiteGuard FORMS (beta)</a>'));
+    assert.ok(!home.includes("/assets/cart.js"));
+    for (const rel of SHOP_PAGES) {
+      const html = await read(d, rel);
+      assert.match(html, /<body[^>]* data-browse-only="1"/, rel);
+      assert.ok(html.includes("data-beta-notice") && html.includes("SiteGuard FORMS is in beta."), rel);
+    }
+    // The single-documents list still loads (cart.js draws it); its Add buttons are hidden by site.css.
+    assert.ok((await read(d, "forms/documents/index.html")).includes('<script src="/assets/cart.js" defer></script>'));
+    assert.match(await read(d, "assets/site.css"), /body\[data-browse-only\] \[data-add-pack\], body\[data-browse-only\] \[data-add-doc\] \{ display: none !important; \}/);
+    // No engine or Stripe in the CSP: nothing here can start a checkout.
+    const csp = (await read(d, "_headers")).match(/Content-Security-Policy: (.*)/)[1];
+    assert.ok(!csp.includes("checkout.stripe.com"), "no Stripe Checkout in form-action");
+    assert.ok(!(await read(d, "robots.txt")).includes("/cart/"));
+  }
+});
+
+test("FORMS out of beta with checkout off: no shop here, the menu links to the FORMS site", async () => {
+  assert.ok(!has(openNoCheckout, "forms/index.html") && !has(openNoCheckout, "cart/index.html"));
+  assert.ok((await read(openNoCheckout, "index.html")).includes('<a href="https://www.siteguardforms.com.au/">SiteGuard FORMS</a>'));
 });
 
 test("checkout on: the FORMS shop renders under /forms/, every page canonical on the FORMS site", async () => {
@@ -72,6 +108,8 @@ test("every price on the shop equals the catalogue; nothing outside a purchasabl
     assert.ok(p.purchasable !== false && p.show, id);
   }
   assert.ok(!cat.packs.some((p) => p.group === "app" && html.includes(`data-add-pack="${p.id}"`)), "app products are not FORMS cart items");
+  // #96 (Q1 narrowed by Dan 1 Nov): no App plan or founding place can go in the cart, on any page.
+  for (const [f, page] of await allHtml(on)) assert.ok(!/data-add-(?:pack|doc)="(?:app|founding)[:_-]/i.test(page), f);
   assert.match(html, /\+GST/);
 });
 

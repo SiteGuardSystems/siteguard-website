@@ -27,6 +27,12 @@ jobs:
           cat dcr-check.txt
           { echo '### dcr-check'; echo '```'; cat dcr-check.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $rc
+      # Dan, 1 Nov 2026 (#94): one FORMS beta switch. The storefront's
+      # data/site-mode.json is the source of truth; this site vendors it
+      # (site-mode.lock). Fails if the copy was edited, this repo sets its own
+      # beta, or the storefront's beta has moved on (public repo, no secrets).
+      - name: site-mode drift check
+        run: npm run --silent site-mode-check -- --upstream
       - name: Browser end-to-end
         run: |
           npx playwright install --with-deps chromium

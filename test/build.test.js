@@ -4,6 +4,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { wordingHits, REDIRECTS, CREDENTIAL } from "../build.mjs";
+import { loadSiteMode } from "../scripts/lib/site-mode.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
@@ -17,7 +18,8 @@ async function htmlFiles(dir = DIST) {
   return out;
 }
 const pages = await Promise.all((await htmlFiles()).map(async (f) => ({ f: path.relative(DIST, f).split(path.sep).join("/"), html: await readFile(f, "utf8") })));
-const MODE = JSON.parse(await readFile(path.join(ROOT, "data/site-mode.json"), "utf8"));
+// The mode the build used: data/site-mode.json plus the storefront's beta switch (site-mode.lock).
+const MODE = (await loadSiteMode(ROOT)).mode;
 const get = (f) => pages.find((p) => p.f === f)?.html ?? assert.fail(`missing ${f}`);
 
 test("the brief's pages exist", () => {
@@ -91,11 +93,12 @@ test("menu: Consulting, SiteGuard App, SiteGuard Audit, Education, Planner, Form
   const nav = get("index.html").match(/<nav class="nav"[\s\S]*?<\/nav>/)[0];
   const labels = [...nav.matchAll(/<(?:a|span|button)\b[^>]*>([^<]+)/g)].map((m) => m[1].trim());
   assert.deepEqual(labels.slice(0, 5), ["Consulting", "SiteGuard App", "SiteGuard Audit", "Education", "Planner"]);
-  assert.equal(labels[5], MODE.beta ? "SiteGuard FORMS: coming soon" : "SiteGuard FORMS");
+  assert.equal(labels[5], MODE.beta ? "SiteGuard FORMS (beta)" : "SiteGuard FORMS");
   assert.equal(labels[6], "Contact");
   assert.match(nav, /<button class="nav-cart"[^>]*data-cart hidden>/); // no checkout yet
   assert.match(nav, /class="cart-link nav-status" href="\/register-interest\/">Register interest</);
-  if (MODE.beta) assert.match(nav, /<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon<\/span>/);
+  // Dan, 1 Nov 2026 (#94): in beta the FORMS shop is browsable here, so the menu links to it.
+  if (MODE.beta) assert.match(nav, /<a href="\/forms\/">SiteGuard FORMS \(beta\)<\/a>/);
   assert.match(nav, /href="\/planning\/"[^>]*>Planner</);
 });
 
