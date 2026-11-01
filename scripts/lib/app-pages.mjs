@@ -12,6 +12,9 @@
 // by scripts/gen-app-packages.py. It is interim: once the app products are in
 // packages.py / catalogue.json as group "app", read them from there instead.
 // Prices are shown only when showAppPrices(mode) (never while coming_soon).
+// The founding prices are the catalogue's group "app" founding_prepay_cents
+// (ctx.appRow(id), from Hseq-Dev's price table, Dan #90): the amount Stripe
+// takes, to the cent; nothing here calculates them.
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { esc } from "./md.mjs";
@@ -66,6 +69,11 @@ export async function loadAppPackages(root) {
 }
 
 const money = (n) => "A$" + Number(n).toLocaleString("en-AU", { maximumFractionDigits: 0 });
+/** A$ from cents: whole dollars as money(), otherwise with the cents (A$1,999.20). */
+export const moneyCents = (c) => (c % 100 === 0 ? money(c / 100)
+  : "A$" + (c / 100).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+/** The catalogue's group "app" id for a trade level, a builder bundle (slug builder-*) or the Audit seat. */
+export const appProductId = { level: (l) => `app:trade:${l.slug}`, bundle: (b) => `app:builder:${b.slug.replace(/^builder-/, "")}`, audit: "app:audit:seat" };
 const perMonth = (n) => `${money(n)} a month <small>+GST</small>`;
 const range = (ns) => (Math.min(...ns) === Math.max(...ns) ? `${ns[0]}` : `${Math.min(...ns)} to ${Math.max(...ns)}`);
 const lockup = (src, alt, w = 171) => `<p class="lockup"><img src="${src}" alt="${esc(alt)}" width="${w}" height="60"></p>`;
@@ -223,6 +231,12 @@ ${related(m)}`,
   if (mode.app_status === "presale") {
     const TF = [...T, ["/app/founding-offer/", "Founding offer"]];
     const f = app.founding;
+    // The founding prepayment and the standard annual price, from the catalogue row (Hseq-Dev's table).
+    const firstYear = (id, each = "") => {
+      const r = ctx.appRow?.(id);
+      if (!r) throw new Error(`founding offer: no catalogue group "app" row ${id}`);
+      return `${moneyCents(r.app_prices.founding_prepay_cents)}${each} for the first year <small>+GST</small> (standard ${money(r.app_prices.cadences.annual.per_year)})`;
+    };
     out.push({
       url: "/app/founding-offer/", title: "SiteGuard App founding offer", trail: TF,
       description: `Founding places on the SiteGuard App and SiteGuard Audit: the first ${f.places} customers get ${f.discount * 100}% off their first year, paid annually, with access from June 2027.`,
@@ -236,9 +250,9 @@ ${related(m)}`,
     <li>If the June 2027 opening moves, you get ${esc(f.delay)}.</li></ul>
     <p class="small">${ctx.foundingTerms ? `Read the <a href="${ctx.foundingTerms}">Founding Offer Terms</a>.` : "The founding offer terms are published before founding places go on sale."}</p></div>
   <div><h2>Founding prices</h2>
-    <ul>${app.levels.map((l) => `<li>Trade ${esc(l.name)}: ${money(Math.round(l.price_month * 12 * (1 - f.discount)))} for the first year <small>+GST</small> (standard ${money(l.price_month * 12)})</li>`).join("")}
-    ${app.bundles.map((b) => `<li>${esc(b.name)}: ${money(Math.round(b.price_month * 12 * (1 - f.discount)))} for the first year <small>+GST</small> (standard ${money(b.price_month * 12)})</li>`).join("")}
-    <li>SiteGuard Audit: ${money(Math.round(app.audit.seat_month * 12 * (1 - f.discount)))} a seat for the first year <small>+GST</small> (standard ${money(app.audit.seat_month * 12)})</li></ul>
+    <ul>${app.levels.map((l) => `<li>Trade ${esc(l.name)}: ${firstYear(appProductId.level(l))}</li>`).join("")}
+    ${app.bundles.map((b) => `<li>${esc(b.name)}: ${firstYear(appProductId.bundle(b))}</li>`).join("")}
+    <li>SiteGuard Audit: ${firstYear(appProductId.audit, " a seat")}</li></ul>
     <div class="btn-row"><a class="btn btn-hivis" href="/register-interest/?interest=both">Ask for a founding place</a></div></div>
 </div></section>`,
     });

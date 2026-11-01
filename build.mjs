@@ -24,7 +24,7 @@ import { loadVideo, introVideo, videoJsonLd, withVideoCsp, withCspSources } from
 import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, educationJsonLd, relatedVideos as relatedVideosBand } from "./scripts/lib/education.mjs";
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
 import { loadSiteMode, shopOn, shopShown, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
-import { loadAppPackages, appPages } from "./scripts/lib/app-pages.mjs";
+import { loadAppPackages, appPages, appProductId } from "./scripts/lib/app-pages.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
 // The FORMS shop and the cart (WP-S8): the same files as SiteGuard-Forms-Storefront.
@@ -158,14 +158,15 @@ export function appPriceDrift(app, cat) {
   const out = [];
   const byId = new Map((cat.packs ?? []).filter((p) => p.group === "app").map((p) => [p.id, p]));
   const want = [
-    ...(app?.levels ?? []).map((l) => [`app:trade:${l.slug}`, l.price_month]),
-    ...(app?.bundles ?? []).map((b) => [`app:builder:${b.slug.replace(/^builder-/, "")}`, b.price_month]),
-    ...(app?.audit ? [["app:audit:seat", app.audit.seat_month]] : []),
+    ...(app?.levels ?? []).map((l) => [appProductId.level(l), l.price_month]),
+    ...(app?.bundles ?? []).map((b) => [appProductId.bundle(b), b.price_month]),
+    ...(app?.audit ? [[appProductId.audit, app.audit.seat_month]] : []),
   ];
   for (const [id, price] of want) {
     const p = byId.get(id);
     if (!p) out.push(`catalogue.json has no app product ${id} (app-packages.json prices it at ${price})`);
     else if (p.app_prices?.per_month !== price) out.push(`app-packages.json prices ${id} at ${price} a month, catalogue.json at ${p.app_prices?.per_month}`);
+    else if (!Number.isInteger(p.app_prices?.founding_prepay_cents)) out.push(`catalogue.json ${id} has no founding_prepay_cents (Hseq-Dev export_price_tables.py --website)`);
   }
   return out;
 }
@@ -714,7 +715,7 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
   for (const p of ap.problems) problems.push(`data: ${p}`);
   for (const p of appPriceDrift(ap.app, cat)) problems.push(`data: ${p}`);
   if (ap.app) {
-    for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos, foundingTerms: "/legal/founding-offer-terms/" })) {
+    for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos, foundingTerms: "/legal/founding-offer-terms/", appRow: (id) => cat.packs.find((p) => p.group === "app" && p.id === id) })) {
       // WP-S10: the founding checkout (presale) and the subscription checkout (live).
       if (appCheckoutOn(MODE) && MODE.app_status === "presale" && spec.url === "/app/founding-offer/") {
         spec.body += `<section class="band band-grey" aria-labelledby="founding-buy-h"><div class="wrap cols"><div><h2 id="founding-buy-h">Buy a founding place</h2>${appCheckoutForm("founding", cat)}</div>

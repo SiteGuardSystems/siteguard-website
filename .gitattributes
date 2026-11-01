@@ -5,3 +5,6 @@ vendor/siteguard-dcr/** -text
 # The storefront's data/site-mode.json (the one FORMS beta switch, Dan 1 Nov 2026):
 # hashed byte-for-byte against site-mode.lock.
 vendor/siteguard-forms-storefront/** -text
+
+# Pinned Hseq-Dev price tables, public view (Dan #90): hashed against pricing.lock.
+vendor/hseq-dev/** -text
