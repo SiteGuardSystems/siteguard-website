@@ -1,0 +1,4 @@
+{
+  "note": "Help chat (P11). api_base: the public origin of the SiteGuard app API that runs the assistant (siteguard-audit, POST /api/support/public/chat), e.g. https://api.example. Empty: the widget shows the support email only and the CSP is unchanged. SUPPORT_CHAT_API_BASE at build time overrides it. The API must list this site's origins in SUPPORT_BOT_ALLOWED_ORIGINS. Set it only with Dan's go, after the privacy policy covers the chat.",
+  "api_base": ""
+}

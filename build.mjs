@@ -23,6 +23,7 @@ import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, edu
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
 import { loadSiteMode, appStatusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages } from "./scripts/lib/app-pages.mjs";
+import { loadSupportChat, supportChatWidget, supportChatConnect } from "./scripts/lib/support-chat.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -43,6 +44,8 @@ let VIDEO = null;
 let PLANNING = { cal: null, insp: null };
 // SiteGuard Education hub (data/education.json; scripts/lib/education.mjs).
 let EDU = null;
+// Help chat (data/support-chat.json; scripts/lib/support-chat.mjs). P11.
+let CHAT = { base: "", endpoint: "" };
 const ORIGIN = (process.env.SITE_ORIGIN ?? "https://www.siteguardsystems.com.au").replace(/\/$/, "");
 const FORMS = (process.env.FORMS_URL ?? "https://www.siteguardforms.com.au").replace(/\/$/, "");
 const LEAD_ENDPOINT = process.env.LEAD_ENDPOINT ?? `${FORMS}/api/lead`;
@@ -200,6 +203,7 @@ function page({ url, title, description, body, trail = [], jsonld = [], strip = 
 <link rel="stylesheet" href="/assets/site.css">
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n")}
 <script src="/assets/site.js" defer></script>
+<script src="/assets/support-chat.js" defer></script>
 </head>
 <body>
 ${header(url)}
@@ -208,6 +212,7 @@ ${body}
 </main>
 ${strip ? partnerStrip(TRUST) : ""}
 ${footer()}
+${supportChatWidget(CHAT, EMAIL)}
 </body>
 </html>
 ` });
@@ -337,6 +342,7 @@ async function build() {
   LAUNCH = ap.app?.launch ?? {};
   if (MODE.app_status === "presale" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(LAUNCH.opens ?? "")) problems.push("data: app-packages.json launch.opens (YYYY-MM) is needed while app_status is presale");
   TRUST = await loadTrust(ROOT, "systems", { sample: SAMPLE_PARTNERS });
+  CHAT = await loadSupportChat(ROOT);
   for (const p of TRUST.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
   if (SAMPLE_PARTNERS) problems.push(`data: built with SAMPLE partners and reviews (--sample-partners)${PRODUCTION ? "; a production build can't use sample data" : " (open item: preview only)"}`);
   const vid = await loadVideo(ROOT);
@@ -656,9 +662,11 @@ async function main() {
   await writeFile(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.map((p) => `  <url><loc>${ORIGIN}${p.url}</loc></url>`).join("\n")}\n</urlset>\n`);
   await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${ORIGIN}/sitemap.xml\n`);
   // Cloudflare Pages headers and redirects.
-  const connect = new URL(LEAD_ENDPOINT).origin;
+  // The lead form's origin, plus the help chat's API origin once it is set (P11).
+  const leadOrigin = new URL(LEAD_ENDPOINT).origin;
+  const connect = [leadOrigin, ...supportChatConnect(CHAT)].filter((o, i, a) => a.indexOf(o) === i).join(" ");
   await writeFile(path.join(DIST, "_headers"), `/*
-  Content-Security-Policy: ${withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self' ${connect}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU))}
+  Content-Security-Policy: ${withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self' ${leadOrigin}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU))}
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
