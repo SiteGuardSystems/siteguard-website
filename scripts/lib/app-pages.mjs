@@ -234,7 +234,7 @@ ${related(m)}`,
     <li>Your price is locked for those ${f.price_lock_months} months; standard prices apply after that.</li>
     <li>The matching ${ctx.formsName()} pack is yours free from March 2027, so you have your documents while you wait.</li>
     <li>If the June 2027 opening moves, you get ${esc(f.delay)}.</li></ul>
-    <p class="small">The founding offer terms are published before founding places go on sale.</p></div>
+    <p class="small">${ctx.foundingTerms ? `Read the <a href="${ctx.foundingTerms}">Founding Offer Terms</a>.` : "The founding offer terms are published before founding places go on sale."}</p></div>
   <div><h2>Founding prices</h2>
     <ul>${app.levels.map((l) => `<li>Trade ${esc(l.name)}: ${money(Math.round(l.price_month * 12 * (1 - f.discount)))} for the first year <small>+GST</small> (standard ${money(l.price_month * 12)})</li>`).join("")}
     ${app.bundles.map((b) => `<li>${esc(b.name)}: ${money(Math.round(b.price_month * 12 * (1 - f.discount)))} for the first year <small>+GST</small> (standard ${money(b.price_month * 12)})</li>`).join("")}
