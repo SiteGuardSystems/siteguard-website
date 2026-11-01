@@ -24,7 +24,7 @@ Same file and shape as the storefront's (`beta`), plus `app_status` for the Site
 | | `presale` | founding places on sale (from March 2027): prices, the pricing page and the founding offer page show |
 | | `live` | the app modules are open (June 2027); the build fails if any pre-launch wording is left |
 
-Pre-launch wording ("coming soon", "launching", "Opens June 2027") is allowed only inside elements marked `data-status-copy` (`statusCopy()` in `site-mode.mjs`), so it can be found and removed when the status changes. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
+Every App and Audit status line comes from one helper, `appStatusCopy()` in `site-mode.mjs`: "Coming soon. Register your interest now." while `coming_soon` (no date anywhere), "Launching June 2027. Founding places are on sale now." while `presale`, nothing once `live`. The month is read from `launch.opens` in `data/app-packages.json` (the go-live month), never typed into copy. Pre-launch wording ("coming soon", "launching") is allowed only inside elements marked `data-status-copy` (`statusCopy()`), so it can be found and removed when the status changes; `test/status.test.js` fails if a `coming_soon` build has "2027" inside one. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
 
 The header cart is in the markup but hidden until checkout exists (`CART_ENABLED` in `build.mjs`).
 
