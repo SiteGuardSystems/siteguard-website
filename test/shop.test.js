@@ -101,3 +101,25 @@ test("shop.mjs, cart.mjs and cart-browser.js are the storefront's files (when ch
     }
   }
 });
+
+test("WP-S12 CSP: the engine in connect-src and Stripe Checkout in form-action only while the shop is on", async () => {
+  const csp = async (d) => (await read(d, "_headers")).match(/Content-Security-Policy: (.*)/)[1];
+  const shopCsp = await csp(on);
+  assert.match(shopCsp, /connect-src 'self' https:\/\/www\.siteguardforms\.com\.au;/);
+  assert.match(shopCsp, /form-action 'self' https:\/\/www\.siteguardforms\.com\.au https:\/\/checkout\.stripe\.com;/);
+  assert.match(shopCsp, /script-src 'self';/);
+  assert.match(shopCsp, /frame-ancestors 'none'/);
+  assert.ok(!(await csp(off)).includes("checkout.stripe.com"));
+  const robots = await read(on, "robots.txt");
+  assert.match(robots, /Disallow: \/cart\/\nDisallow: \/order\//);
+});
+
+test("WP-S12: no inline script or style on the shop and cart pages; prices say +GST", async () => {
+  for (const rel of ["forms/index.html", "forms/builder-packs/index.html", "forms/documents/index.html", "cart/index.html", "order/success/index.html"]) {
+    const html = await read(on, rel);
+    assert.ok(!/<script(?![^>]*(src=|application\/ld\+json))[^>]*>/.test(html), rel);
+    assert.ok(!/ style="/.test(html), rel);
+    assert.match(html, /class="skip" href="#main"/, rel);
+  }
+  assert.match(await read(on, "forms/builder-packs/index.html"), /<small> \+GST<\/small>/);
+});

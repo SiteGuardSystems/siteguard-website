@@ -57,6 +57,8 @@ const FORMS_APP = (process.env.FORMS_APP_URL ?? "https://app.siteguardforms.com.
 export const CHECKOUT_ENGINE = (process.env.CHECKOUT_ENGINE ?? FORMS).replace(/\/$/, "");
 // The FORMS shop lives under /forms/ here; its pages are canonical on the FORMS site.
 export const SHOP_BASE = "/forms";
+// Stripe Checkout's origin: the engine returns a checkout.stripe.com URL.
+export const STRIPE_CHECKOUT = "https://checkout.stripe.com";
 const LEAD_ENDPOINT = process.env.LEAD_ENDPOINT ?? `${FORMS}/api/lead`;
 const EMAIL = "hello@siteguardsystems.com.au";
 const LINKEDIN = "https://www.linkedin.com/in/silverdaniel";
@@ -779,11 +781,16 @@ async function main() {
   }
   if (shopOn(MODE)) await writeFile(path.join(DIST, "assets/cart.js"), systemsCartScript(await cartBrowserParts(), { engine: CHECKOUT_ENGINE, root: `${SHOP_BASE}/` }));
   await writeFile(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.map((p) => `  <url><loc>${ORIGIN}${p.url}</loc></url>`).join("\n")}\n</urlset>\n`);
-  await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${ORIGIN}/sitemap.xml\n`);
+  await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\n${shopOn(MODE) ? "Disallow: /cart/\nDisallow: /order/\n" : ""}Sitemap: ${ORIGIN}/sitemap.xml\n`);
   // Cloudflare Pages headers and redirects.
   const connect = new URL(LEAD_ENDPOINT).origin;
+  // WP-S12: while the shop is on, the cart may call the checkout engine
+  // (connect-src) and the checkout hands over to Stripe Checkout (form-action).
+  const engine = shopOn(MODE) ? new URL(CHECKOUT_ENGINE).origin : null;
+  const connectSrc = [...new Set(["'self'", connect, ...(engine ? [engine] : [])])].join(" ");
+  const formAction = [...new Set(["'self'", connect, ...(engine ? [engine, STRIPE_CHECKOUT] : [])])].join(" ");
   await writeFile(path.join(DIST, "_headers"), `/*
-  Content-Security-Policy: ${withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${connect}; form-action 'self' ${connect}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU))}
+  Content-Security-Policy: ${withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ${connectSrc}; form-action ${formAction}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU))}
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY

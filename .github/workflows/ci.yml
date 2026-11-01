@@ -31,3 +31,5 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           npm run test:e2e
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level=high
