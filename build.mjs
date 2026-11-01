@@ -215,6 +215,39 @@ ${footer()}
 const head = (trail, h1, lede) => `<section class="page-head"><div class="wrap">${crumbs(trail)}<h1>${h1}</h1>${lede ? `<p class="lede">${lede}</p>` : ""}</div></section>`;
 const enquire = (label = "Send an enquiry") => `<p><a class="btn btn-hivis" href="/contact/">${label}</a></p>`;
 
+// Register interest (WP-S7): posts to the storefront's /api/lead as
+// enquiry_type=app-interest. The consent basis is recorded with the lead
+// (S077 fields): ticking the box is express consent to launch emails, and
+// the exact wording shown is sent with it.
+export const CONSENT_WORDING = "Email me about the SiteGuard App and SiteGuard Audit: when founding places and the app open, and the founding offer. I can unsubscribe at any time.";
+
+function interestForm(app) {
+  const trades = [...(app?.trades ?? []).map((t) => t.name), "Builder", "HSEQ consultant", "Other business"];
+  return `<form class="form" data-lead-form data-source="systems" data-endpoint="${esc(LEAD_ENDPOINT)}" method="post" action="${esc(LEAD_ENDPOINT)}" novalidate>
+  <input type="hidden" name="source" value="systems">
+  <input type="hidden" name="enquiry_type" value="app-interest">
+  <input type="hidden" name="consent_wording" value="${esc(CONSENT_WORDING)}">
+  <input type="hidden" name="consent_source" value="${ORIGIN}/register-interest/">
+  <input type="hidden" name="ref" value="" data-ref-field>
+  <fieldset class="choice"><legend>I'm interested in</legend>
+    <label class="check"><input type="radio" name="interest" value="app">The SiteGuard App</label>
+    <label class="check"><input type="radio" name="interest" value="audit">SiteGuard Audit</label>
+    <label class="check"><input type="radio" name="interest" value="both" checked>Both</label>
+  </fieldset>
+  <label>Your name<input name="name" autocomplete="name" required maxlength="200"></label>
+  <label>Email<input type="email" name="email" autocomplete="email" required maxlength="200"></label>
+  <label>Company<input name="company" autocomplete="organization" maxlength="200"></label>
+  <label>Phone<input type="tel" name="phone" autocomplete="tel" maxlength="40"></label>
+  <label>Your trade or business<select name="trade"><option value="">Choose one (optional)</option>${trades.map((t) => `<option>${esc(t)}</option>`).join("")}</select></label>
+  <label>Anything we should know? (optional)<textarea name="need" maxlength="2000"></textarea></label>
+  <label class="check"><input type="checkbox" name="consent" value="yes">${esc(CONSENT_WORDING)}</label>
+  <div class="hp" aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
+  <p class="small">We use these details to reply to you and, if you tick the box, to email you about the launch. <a href="/legal/privacy/">Privacy Policy</a>.</p>
+  <p class="form-status" data-status aria-live="polite"></p>
+  <div><button class="btn btn-hivis" type="submit">Register interest</button></div>
+</form>`;
+}
+
 function leadForm() {
   return `<form class="form" data-lead-form data-source="systems" data-endpoint="${esc(LEAD_ENDPOINT)}" method="post" action="${esc(LEAD_ENDPOINT)}" novalidate>
   <input type="hidden" name="source" value="systems">
@@ -558,7 +591,11 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
       description: "Register your interest in the SiteGuard App and SiteGuard Audit, and we'll tell you when founding places and the app open.",
       body: `${head([["/register-interest/", "Register interest"]], "Register interest", "Tell us whether you're interested in the SiteGuard App, SiteGuard Audit or both, and we'll keep you posted.")}
 <section class="band"><div class="wrap cols">
-  <div>${appWhen({ cls: "note status-line" })}<p>Send us an enquiry with your name, your business and the product you're interested in.</p>${enquire("Send an enquiry")}</div>
+  <div>${interestForm(ap.app)}</div>
+  <div>${appWhen({ cls: "note status-line" })}<h2>What happens next</h2><ul>
+    <li>We'll tell you when founding places open (from March 2027) and when the app opens (June 2027).</li>
+${MODE.app_status === "presale" ? `    <li><a href="/app/founding-offer/">Founding places</a> are on sale now.</li>
+` : ""}    <li>Questions now? <a href="/contact/">Send an enquiry</a>.</li></ul></div>
 </div></section>`,
     });
   }

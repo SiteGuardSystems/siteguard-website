@@ -407,3 +407,7 @@ mark.placeholder { background: var(--warn-wash); color: var(--ink); padding: 0 0
 .trade-list .small { display: block; }
 details.doclist-titles li { display: block; }
 .rung h3 a { color: var(--ink); }
+
+/* Register interest form */
+.form fieldset.choice { border: 0; padding: 0; margin: 0; }
+.form fieldset.choice legend { font-weight: 600; color: var(--ink); padding: 0; margin-bottom: 0.4rem; }
