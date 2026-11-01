@@ -39,6 +39,15 @@ The storefront's own page builders, shared byte for byte: `scripts/lib/shop.mjs`
 - One cart for everything (Dan's Q1 default). `/cart/` posts to the storefront's checkout engine (`CHECKOUT_ENGINE`, default `https://www.siteguardforms.com.au`) with `returnOrigin` and `source_site: "systems"`; the engine re-prices every line from the catalogue. Stripe sends the buyer back to `/order/success/` or `/order/cancelled/` here.
 - Preview a build with the shop on: `node build.mjs --beta=false --checkout=true`.
 
+## SiteGuard App checkout (WP-S9 / WP-S10)
+
+With `checkout` true, the App pages sell through the storefront's checkout engine (P2's routes; `assets/app-checkout.js`):
+
+- `app_status` `presale`: a founding-place form on `/app/founding-offer/` (POST `/api/founding/checkout`), with `/founding/success/` and `/founding/cancelled/` here (the cancelled page gives the place back at once).
+- `app_status` `live`: a subscription form on `/app/pricing/` (POST `/api/subscribe`, annual by default), with `/app/success/` and `/app/cancelled/`.
+- Every call sends `returnOrigin` (this site) and `source_site: "systems"`; the engine only accepts this site's origins.
+- The engine decides too: founding only while its own `app_status` is `presale` and P2's sale window is open; subscriptions only when its `app_status` is `live`, the platform launch endpoint says the app is live, and P2's go-live date has passed. Switch `app_status` here and in the storefront's `data/site-mode.json` together.
+
 ## DCR
 
 The same check as SiteGuard-Forms-Storefront (its README has the detail). This repo is public, so it never holds the full DCR: `dcr.lock` pins siteguard-dcr's public page-A extract (Rev23, `vendor/siteguard-dcr/public/rev23/dcr-public.json`) by sha256. `scripts/lib/dcr.mjs` and `scripts/dcr-check.mjs` are the storefront's files, unchanged; keep them identical in both repos.
