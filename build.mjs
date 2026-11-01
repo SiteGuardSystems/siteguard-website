@@ -597,7 +597,7 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
 <section class="band"><div class="wrap cols">
   <div>${interestForm(ap.app)}</div>
   <div>${appWhen({ cls: "note status-line" })}<h2>What happens next</h2><ul>
-    <li>We'll tell you when founding places open (from March 2027) and when the app opens (June 2027).</li>
+    <li>We'll tell you when founding places open and when the app opens.</li>
 ${MODE.app_status === "presale" ? `    <li><a href="/app/founding-offer/">Founding places</a> are on sale now.</li>
 ` : ""}    <li>Questions now? <a href="/contact/">Send an enquiry</a>.</li></ul></div>
 </div></section>`,
