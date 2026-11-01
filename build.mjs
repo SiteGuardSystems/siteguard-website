@@ -199,6 +199,31 @@ function header(url) {
 </header>`;
 }
 
+// Legal pages (WP-S11). The synced ones come from SiteGuard-Forms
+// app/server/data/legal (scripts/sync-legal.mjs, the one legal source); the
+// FORMS ones are here because the Systems site sells FORMS packs from the same
+// catalogue and checkout. "when" decides whether a page is published.
+export const LEGAL_PAGES = [
+  { file: "website-disclaimer.md", slug: "disclaimer", nav: "Website Disclaimer" },
+  { file: "privacy.md", slug: "privacy", nav: "Privacy Policy" },
+  { file: "website-terms.md", slug: "website-terms", nav: "Website Terms of Use" },
+  { file: "terms-of-sale.md", slug: "terms-of-sale", nav: "Terms of Sale" },
+  { file: "refunds.md", slug: "refunds", nav: "Refunds and cancellations" },
+  { file: "disclaimer.md", slug: "document-use-disclaimer", nav: "Document Use Disclaimer" },
+  { file: "terms-of-use.md", slug: "forms-app-terms", nav: "FORMS App Terms of Use" },
+  // Published only while a consultant plan is on sale (as on the storefront).
+  { file: "consultant-licence.md", slug: "consultant-licence", nav: "Consultant Licence", when: (c) => c.consultants },
+  // Not yet written (Solicitor Brief Pack Rev03): content/legal-pending/, marked
+  // PENDING SOLICITOR until Dan swaps in the approved wording. Published only
+  // once the app is on sale (presale or live); a production build fails while
+  // either still says PENDING SOLICITOR.
+  { file: "app-subscription-terms.md", dir: "legal-pending", slug: "app-subscription-terms", nav: "App Subscription Terms", when: (c) => c.app_status !== "coming_soon" },
+  { file: "founding-offer-terms.md", dir: "legal-pending", slug: "founding-offer-terms", nav: "Founding Offer Terms", when: (c) => c.app_status !== "coming_soon" },
+];
+export const PENDING = "PENDING SOLICITOR";
+// Set in build(): the legal pages published in this state.
+let LEGAL_ON = LEGAL_PAGES.filter((l) => !l.when);
+
 function footer() {
   return `<footer class="site-footer"><div class="wrap">
   <div class="footer-grid">
@@ -208,7 +233,7 @@ function footer() {
       <li><a href="/library/">Document library</a></li><li><a href="/about/">About Daniel Silver</a></li></ul></div>
     <div><h2>Products and tools</h2><ul><li><a href="/app/">SiteGuard App</a></li><li><a href="/audit/">SiteGuard Audit</a></li><li><a href="/education/">SiteGuard Education</a></li><li><a href="/planning/">Planner</a></li></ul></div>
     <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li>${MODE.app_status === "live" ? "" : `<li><a href="/register-interest/">Register interest</a></li>`}<li><a href="/partners/">Partners and referrals</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
-    <div><h2>Legal</h2><ul><li><a href="/legal/disclaimer/">Website Disclaimer</a></li><li><a href="/legal/privacy/">Privacy Policy</a></li><li><a href="/legal/website-terms/">Website Terms of Use</a></li></ul></div>
+    <div><h2>Legal</h2><ul>${LEGAL_ON.map((l) => `<li><a href="/legal/${l.slug}/">${esc(l.nav)}</a></li>`).join("")}</ul></div>
   </div>
   <p class="footer-base">SiteGuard provides frameworks, systems and advisory support. Work health and safety duties stay with the person conducting the business or undertaking.<br>© ${new Date().getFullYear()} SiteGuard Systems · ABN 36 765 797 871</p>
 </div></footer>`;
@@ -220,12 +245,12 @@ function crumbs(trail) {
     i === items.length - 1 ? `<li aria-current="page">${esc(l)}</li>` : `<li><a href="${h}">${esc(l)}</a></li>`).join("")}</ol></nav>`;
 }
 
-function page({ url, title, description, body, trail = [], jsonld = [], strip = true }) {
+function page({ url, title, description, body, trail = [], jsonld = [], strip = true, noindex = false }) {
   const full = url === "/" ? title : `${title} | SiteGuard Systems`;
   const ld = [...jsonld];
   if (trail.length) ld.push({ "@context": "https://schema.org", "@type": "BreadcrumbList",
     itemListElement: [["/", "Home"], ...trail].map(([h, l], i) => ({ "@type": "ListItem", position: i + 1, name: l, item: ORIGIN + h })) });
-  pages.push({ url, title: full, html: `<!doctype html>
+  pages.push({ url, title: full, noindex, html: `<!doctype html>
 <html lang="en-AU">
 <head>
 <meta charset="utf-8">
@@ -233,7 +258,7 @@ function page({ url, title, description, body, trail = [], jsonld = [], strip = 
 <title>${esc(full)}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${ORIGIN}${url}">
-<meta property="og:type" content="website">
+${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta property="og:type" content="website">
 <meta property="og:site_name" content="SiteGuard Systems">
 <meta property="og:title" content="${esc(full)}">
 <meta property="og:description" content="${esc(description)}">
@@ -365,8 +390,8 @@ const SERVICES = {
 };
 const TC = [["/consulting/", "Consulting"]];
 
-async function legal(file) {
-  return frontMatter(await readFile(path.join(ROOT, "content/legal", file), "utf8"));
+async function legal(file, dir = "legal") {
+  return frontMatter(await readFile(path.join(ROOT, "content", dir, file), "utf8"));
 }
 
 async function build() {
@@ -393,6 +418,8 @@ async function build() {
   const fromP = facts.preview ? {} : facts.from_prices; // a preview catalogue never sets public prices
   const cat = JSON.parse(await readFile(CATALOGUE, "utf8"));
   checkDcr(cat);
+  const legalCtx = { app_status: MODE.app_status, consultants: cat.packs.some((p) => p.group === "consultants" && p.show && p.prices && p.id !== "consultant:seat") };
+  LEGAL_ON = LEGAL_PAGES.filter((l) => !l.when || l.when(legalCtx));
   if (PRODUCTION && cat.preview) problems.push("catalogue.json is a PREVIEW build (generated with --preview); regenerate without it");
 
   page({
@@ -627,8 +654,7 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
   for (const p of ap.problems) problems.push(`data: ${p}`);
   for (const p of appPriceDrift(ap.app, cat)) problems.push(`data: ${p}`);
   if (ap.app) {
-    for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos })) page(spec);
-    if (MODE.app_status === "presale") problems.push("/app/founding-offer/: the founding offer terms (SG-LEGAL-13) are not published yet; solicitor review pending (open item)");
+    for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos, foundingTerms: "/legal/founding-offer-terms/" })) page(spec);
   }
 
   // SiteGuard Audit (scripts/lib/audit-pages.mjs, data/audit-checklists.json).
@@ -657,15 +683,17 @@ ${MODE.app_status === "presale" ? `    <li><a href="/app/founding-offer/">Foundi
     body: `<section class="page-head"><div class="wrap"><h1>Thanks. Your enquiry has been sent.</h1><p class="lede">We reply within one business day.</p><p><a class="btn" href="/">Back to the home page</a></p></div></section>`,
   });
 
-  for (const [file, slug, nav] of [["website-disclaimer.md", "disclaimer", "Website Disclaimer"], ["privacy.md", "privacy", "Privacy Policy"], ["website-terms.md", "website-terms", "Website Terms of Use"]]) {
-    const doc = await legal(file);
+  for (const { file, dir, slug, nav } of LEGAL_ON) {
+    const doc = await legal(file, dir);
     const url = `/legal/${slug}/`;
     const left = doc.body.match(PLACEHOLDER_RE) ?? [];
     if (left.length) problems.push(`${file}: ${left.length} open item(s) to fill in: ${[...new Set(left)].join(", ")}`);
+    const pending = String(doc.meta.status ?? "").toUpperCase().startsWith(PENDING);
+    if (pending) problems.push(`${url}: ${doc.meta.reference} ${doc.meta.title} is ${PENDING}: swap in the approved wording before it goes live (open item)`);
     page({
-      url, title: doc.meta.title, trail: [[url, nav]], description: plain(doc.body),
+      url, title: doc.meta.title, trail: [[url, nav]], description: plain(doc.body), noindex: pending,
       body: `${head([[url, nav]], esc(doc.meta.title), "")}
-<section class="band"><div class="wrap prose"><p class="small">${esc(doc.meta.reference)}, version ${esc(doc.meta.version)}, ${esc(doc.meta.date)}</p>${render(doc.body)}</div></section>`,
+<section class="band"><div class="wrap prose" data-legal${pending ? " data-pending-solicitor" : ""}><p class="small">${esc(doc.meta.reference)}, version ${esc(doc.meta.version)}, ${esc(doc.meta.date)}${pending ? ` · <strong>${PENDING}</strong>` : ""}</p>${render(doc.body)}</div></section>`,
     });
   }
 
@@ -699,7 +727,7 @@ async function main() {
     if (Buffer.byteLength(p.html) > 100_000) problems.push(`${p.url}: over 100 KB`);
   }
   for (const st of STATES) await writeFile(path.join(DIST, "planning", `siteguard-planning-${st.toLowerCase()}.ics`), icsFor(PLANNING, st, { origin: ORIGIN, brand: "SiteGuard Systems" }));
-  const listed = pages.filter((p) => !p.url.endsWith(".html"));
+  const listed = pages.filter((p) => !p.url.endsWith(".html") && !p.noindex);
   await writeFile(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.map((p) => `  <url><loc>${ORIGIN}${p.url}</loc></url>`).join("\n")}\n</urlset>\n`);
   await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${ORIGIN}/sitemap.xml\n`);
   // Cloudflare Pages headers and redirects.

@@ -9,7 +9,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const FILES = ["website-disclaimer.md", "privacy.md", "website-terms.md"];
+// WP-S11: the FORMS sale terms too, because the Systems site sells FORMS packs
+// through the same checkout: Terms of Sale (SG-LEGAL-02), Refunds (SG-LEGAL-03),
+// the Checkout Notice (SG-LEGAL-06, shown on the cart page), the FORMS App Terms
+// of Use (SG-LEGAL-08), the Document Use Disclaimer (SG-LEGAL-01) and the
+// Consultant Licence (SG-LEGAL-07, published only while a consultant plan is on
+// sale). App Subscription Terms (SG-LEGAL-12) and Founding Offer Terms
+// (SG-LEGAL-13) aren't in SiteGuard-Forms yet: they sit in content/legal-pending/
+// marked PENDING SOLICITOR. Once approved, add them to SiteGuard-Forms and here.
+const FILES = ["website-disclaimer.md", "privacy.md", "website-terms.md", "terms-of-sale.md", "refunds.md",
+  "checkout-notice.md", "terms-of-use.md", "disclaimer.md", "consultant-licence.md"];
 const src = process.argv[2];
 if (!src) {
   console.error("usage: node scripts/sync-legal.mjs <path to SiteGuard-Forms/app/server/data/legal>");
