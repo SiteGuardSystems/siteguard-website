@@ -22,5 +22,5 @@
    "source_sha256": "608b75563ae2b1034f8e2121af4d61b6be50c6b68decccdc8a38fb79b92002b6"
   }
  },
- "update": "Change the table in Hseq-Dev, re-run docs/pricing/export_price_tables.py --website, commit (docs/pricing/README.md)."
+ "update": "Change the table in Hseq-Dev, re-run docs/pricing/export_price_tables.py (--website / --storefront), commit (docs/pricing/README.md)."
 }

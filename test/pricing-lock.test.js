@@ -64,6 +64,21 @@ describe("pricing.lock: the pinned public view of Hseq-Dev's price tables", () =
   });
 });
 
+describe("a public repo: data/catalogue.json carries no internal notes", () => {
+  test("no $-keys anywhere, no internal status fields, no private words (same checks as the storefront)", () => {
+    const ks = [];
+    const walk = (o, at) => {
+      if (Array.isArray(o)) o.forEach((v, i) => walk(v, `${at}[${i}]`));
+      else if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) { ks.push([k, `${at}.${k}`]); walk(v, `${at}.${k}`); }
+    };
+    walk(CAT, "catalogue");
+    assert.deepEqual(ks.filter(([k]) => k.startsWith("$")).map(([, at]) => at), [], "internal $-notes");
+    assert.deepEqual(ks.filter(([k]) => ["pricing_status", "ofsc_held", "not_released_reasons"].includes(k)).map(([, at]) => at), []);
+    const text = JSON.stringify(CAT);
+    for (const w of [/\bDan\b/, /flagged/i, /PENDING/, /\bCORE\b/, /SiteGuard AI/, /robot/i, /OFSC/i, /\.xlsx/]) assert.doesNotMatch(text, w);
+  });
+});
+
 describe("app prices: the catalogue's group \"app\" is the pinned table", () => {
   test("each row's app_prices (every cadence and the founding prepayment) equal the view", () => {
     assert.deepEqual(APP_ROWS.map((p) => p.id).sort(), Object.keys(APP.products).sort());
