@@ -101,3 +101,7 @@ enquiry form in a real browser. Both run in CI.
 `/app/`, `/app/trade-packages/` and a page per trade, `/app/builder-bundles/`, and a page per module (`/app/safety/`, `/quality/`, `/environmental/`, `/management/`) with its lockup from the Brand Suite Rev06 (`assets/brand/`). `/app/pricing/` is built once `app_status` is `presale` or `live`; `/app/founding-offer/` only while `presale`.
 
 The data is `data/app-packages.json`, **interim**: generated from the Packages and Pricing workbook (tabs Trade Packages, Trade Package Schedule, Trade Package Contents, App Bundles, Levers) by `python scripts/gen-app-packages.py <workbook.xlsx>`. It carries document titles and counts, never document codes, competitor names, costs or margins. Only issued masters are listed. Once the app products are in packages.py / catalogue.json as group `"app"`, read them from there and retire the generator.
+
+## SiteGuard Audit pages (`scripts/lib/audit-pages.mjs`)
+
+`/audit/` and `/audit/checklists/`. Checklist counts come from `data/audit-checklists.json`, generated from SG_AUDIT_CHECKLIST_BUILD_LIST_Rev02 (siteguard-audit `packages/templates/BUILD_LIST.csv`) by `python scripts/gen-audit-checklists.py <BUILD_LIST.csv>`. Only counts by type, area and wave are copied (the list carries internal document codes and stays in the private repo). The seat price and AI photo-check allowance come from `data/app-packages.json`.
