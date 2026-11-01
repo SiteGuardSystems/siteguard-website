@@ -163,5 +163,53 @@ try {
   assert.match(await sp.locator("[data-checkout-form] [data-status]").textContent(), /can't be bought yet/);
   assert.ok(await sp.locator('[data-checkout-form] button[type="submit"]').isEnabled());
   assert.deepEqual(errors, []);
+
+  // ---- WP-S10: founding (presale) and subscriptions (live) through the mocked engine ----
+  for (const [st, extra] of [["presale", []], ["live", ["--beta=false"]]]) {
+    const d = await mkdtemp(path.join(tmpdir(), `sg-e2e-${st}-`));
+    execFileSync(process.execPath, [path.join(ROOT, "build.mjs"), `--app-status=${st}`, "--checkout=true", ...extra], { env: { ...process.env, DIST_DIR: d, CHECKOUT_ENGINE: ENGINE }, stdio: "ignore" });
+    const srv = serve(d);
+    await new Promise((r) => srv.listen(0, r));
+    const site = `http://127.0.0.1:${srv.address().port}`;
+    const ap = await browser.newPage({ viewport: { width: 360, height: 780 } });
+    ap.on("pageerror", (e) => errors.push(e.message));
+    const cors = { "access-control-allow-origin": site, "access-control-allow-methods": "GET, POST", "access-control-allow-headers": "content-type" };
+    let body, cancelled;
+    await ap.route(`${ENGINE}/**`, async (route) => {
+      const req = route.request(), u = new URL(req.url());
+      if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+      if (u.pathname === "/api/founding/status") return route.fulfill({ headers: cors, json: { open: true, places_total: 20, places_remaining: 7, notice: { terms_version: "SG-LEGAL-13 DRAFT" } } });
+      if (u.pathname === "/api/app/prices") return route.fulfill({ headers: cors, json: { app_subscriptions_open: true, notice: { terms_version: "SG-LEGAL-13 DRAFT" } } });
+      if (u.pathname === "/api/founding/checkout/cancel") { cancelled = JSON.parse(req.postData()); return route.fulfill({ headers: cors, json: { ok: true, released: true } }); }
+      body = JSON.parse(req.postData());
+      return route.fulfill({ headers: cors, json: { ok: true, url: `${site}/${st === "presale" ? "founding" : "app"}/success/` } });
+    });
+    const url = st === "presale" ? "/app/founding-offer/" : "/app/pricing/";
+    await ap.goto(site + url);
+    assert.ok(await ap.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${url} at 360px`);
+    if (st === "presale") await ap.locator("[data-places]").filter({ hasText: "7 of 20" }).waitFor();
+    await ap.selectOption('[data-app-checkout] select[name="productId"]', "app:trade:domestic");
+    await ap.selectOption('[data-app-checkout] select[name="trade"]', "CARP");
+    await ap.click('[data-app-checkout] button[type="submit"]');
+    assert.match(await ap.locator("[data-app-checkout] [data-status]").textContent(), /Tick the box/);
+    await ap.check('[data-app-checkout] input[name="accept"]');
+    await ap.click('[data-app-checkout] button[type="submit"]');
+    await ap.waitForURL(new RegExp(st === "presale" ? "/founding/success/" : "/app/success/"));
+    assert.equal(body.productId, "app:trade:domestic");
+    assert.equal(body.trade, "CARP");
+    assert.equal(body.acceptedTerms, true);
+    assert.equal(body.termsVersion, "SG-LEGAL-13 DRAFT");
+    assert.equal(body.returnOrigin, site);
+    assert.equal(body.source_site, "systems");
+    if (st === "live") assert.equal(body.cadence, "annual", "annual is the default");
+    if (st === "presale") {
+      await ap.goto(site + "/founding/cancelled/?session_id=cs_test_abc123");
+      await ap.waitForFunction(() => true);
+      for (let i = 0; i < 20 && !cancelled; i++) await ap.waitForTimeout(100);
+      assert.deepEqual(cancelled, { session_id: "cs_test_abc123" }, "the cancelled page gives the place back");
+    }
+    await ap.close(); srv.close(); await rm(d, { recursive: true, force: true });
+  }
+  assert.deepEqual(errors, []);
   console.log("e2e: all checks passed");
 } finally { await browser.close(); server.close(); shopServer.close(); await rm(SHOP_DIST, { recursive: true, force: true }); }

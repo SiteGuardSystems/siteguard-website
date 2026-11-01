@@ -188,6 +188,32 @@ export const REDIRECTS = [
 // Checkout (WP-S8 onwards) shows the cart; until then it stays hidden.
 // data/site-mode.json "checkout" (and FORMS out of beta): scripts/lib/site-mode.mjs shopOn().
 const cartEnabled = () => shopOn(MODE);
+// WP-S10: SiteGuard App checkout through the engine: founding places while
+// app_status is "presale", subscriptions once it is "live". Needs "checkout"
+// on (the engine accepts this site), not FORMS out of beta. The engine's own
+// gates (its app_status, P2's dates, the platform launch endpoint) decide too.
+export const appCheckoutOn = (mode) => mode.checkout === true && mode.app_status !== "coming_soon";
+
+/** The founding or subscription form (assets/app-checkout.js posts it to the engine). */
+function appCheckoutForm(kind, cat) {
+  const app = (cat.packs ?? []).filter((p) => p.group === "app");
+  const label = (p) => `${p.name}: ${money(p.app_prices.per_month)} a month +GST${p.app_prices.per_seat ? " a seat" : ""}, billed annually`;
+  const trades = (cat.trades ?? []).filter((t) => t.group === "trade-packs" || t.group === "specialist-packs");
+  const cad = app[0]?.app_prices?.cadences ?? {};
+  const cadLabel = { annual: "Paid yearly (best value)", six_monthly: "Paid every 6 months", quarterly: "Paid every 3 months", monthly: "Paid monthly" };
+  const terms = kind === "founding" ? ["/legal/founding-offer-terms/", "Founding Offer Terms"] : ["/legal/app-subscription-terms/", "App Subscription Terms"];
+  return `<form class="form" id="${kind === "founding" ? "founding-checkout" : "subscribe"}" data-app-checkout="${kind === "founding" ? "founding" : "subscribe"}" data-engine="${esc(new URL(CHECKOUT_ENGINE).origin)}" novalidate>
+  ${kind === "founding" ? '<p class="founding-places" data-places aria-live="polite"></p>' : ""}
+  <label>What you're buying<select name="productId">${app.map((p) => `<option value="${esc(p.id)}">${esc(label(p))}</option>`).join("")}</select></label>
+  <label data-trade-field>Your trade<select name="trade"><option value="">Choose your trade</option>${trades.map((t) => `<option value="${esc(t.code)}">${esc(t.name)}</option>`).join("")}</select></label>
+  <label data-seats-field>Audit seats<input type="number" name="quantity" min="1" max="50" value="1"></label>
+  ${kind === "subscribe" ? `<label>Billing<select name="cadence">${Object.keys(cad).map((c) => `<option value="${c}"${c === "annual" ? " selected" : ""}>${cadLabel[c] ?? c}</option>`).join("")}</select></label>` : '<label>Email for your receipt (optional)<input type="email" name="email" autocomplete="email" maxlength="200"></label>'}
+  <label class="check"><input type="checkbox" name="accept" aria-required="true"> <span>I have read and accept the <a href="${terms[0]}">${terms[1]}</a>${kind === "founding" ? ", and I understand I pay for 12 months now and they start when the app opens" : ""}.</span></label>
+  <p class="small">Prices are in A$ and exclude GST; GST is added at checkout. Checkout is handled by Stripe.</p>
+  <p class="form-status" data-status aria-live="polite"></p>
+  <div><button class="btn btn-hivis" type="submit">${kind === "founding" ? "Buy a founding place" : "Go to secure checkout"}</button></div>
+</form>`;
+}
 
 /** The header button that follows the launch status. */
 function statusButton() {
@@ -288,7 +314,7 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta prop
 <link rel="stylesheet" href="/assets/site.css">
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n")}
 <script src="/assets/site.js" defer></script>
-${cartEnabled() ? '<script src="/assets/cart.js" defer></script>\n' : ""}</head>
+${/data-app-checkout|data-founding-cancel/.test(body) ? '<script src="/assets/app-checkout.js" defer></script>\n' : ""}${cartEnabled() ? '<script src="/assets/cart.js" defer></script>\n' : ""}</head>
 <body${preview ? ' data-preview="1"' : ""}>
 ${preview ? '<div class="preview-bar" role="note"><strong>Preview build.</strong> This shows every package for review, including packages not yet released for sale. Checkout is switched off.</div>\n' : ""}
 ${header(url)}
@@ -673,7 +699,29 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
   for (const p of ap.problems) problems.push(`data: ${p}`);
   for (const p of appPriceDrift(ap.app, cat)) problems.push(`data: ${p}`);
   if (ap.app) {
-    for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos, foundingTerms: "/legal/founding-offer-terms/" })) page(spec);
+    for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos, foundingTerms: "/legal/founding-offer-terms/" })) {
+      // WP-S10: the founding checkout (presale) and the subscription checkout (live).
+      if (appCheckoutOn(MODE) && MODE.app_status === "presale" && spec.url === "/app/founding-offer/") {
+        spec.body += `<section class="band band-grey" aria-labelledby="founding-buy-h"><div class="wrap cols"><div><h2 id="founding-buy-h">Buy a founding place</h2>${appCheckoutForm("founding", cat)}</div>
+<div><h2>What happens next</h2><ul><li>Stripe takes the payment for 12 months, less 15%.</li><li>Your matching SiteGuard FORMS pack follows by email.</li><li>Your 12 months start when the app opens.</li></ul></div></div></section>`;
+      }
+      if (appCheckoutOn(MODE) && MODE.app_status === "live" && spec.url === "/app/pricing/") {
+        spec.body += `<section class="band band-grey" aria-labelledby="subscribe-h"><div class="wrap"><h2 id="subscribe-h">Subscribe</h2>${appCheckoutForm("subscribe", cat)}</div></section>`;
+      }
+      page(spec);
+    }
+    if (appCheckoutOn(MODE)) {
+      const done = (url, title, h1, lede, extra = "") => page({ url, title, trail: [[url, title]], description: lede, noindex: true,
+        body: `<section class="page-head"><div class="wrap"${extra}><h1>${h1}</h1><p class="lede">${lede}</p><p><a class="btn" href="/app/">Back to the SiteGuard App</a></p></div></section>` });
+      if (MODE.app_status === "presale") {
+        done("/founding/success/", "Founding place confirmed", "Thank you. Your founding place is confirmed.", "We've emailed your Stripe receipt. Your matching SiteGuard FORMS pack follows, and your 12 months start when the app opens.");
+        done("/founding/cancelled/", "Founding checkout cancelled", "Checkout cancelled", "Nothing was charged, and the place has gone back on sale.", ` data-founding-cancel data-engine="${esc(new URL(CHECKOUT_ENGINE).origin)}"`);
+      }
+      if (MODE.app_status === "live") {
+        done("/app/success/", "Subscription started", "Thank you. Your subscription has started.", "We've emailed your Stripe receipt. We'll be in touch to set up your account.");
+        done("/app/cancelled/", "Subscription checkout cancelled", "Checkout cancelled", "Nothing was charged.");
+      }
+    }
   }
 
   // SiteGuard Audit (scripts/lib/audit-pages.mjs, data/audit-checklists.json).
@@ -786,7 +834,7 @@ async function main() {
   const connect = new URL(LEAD_ENDPOINT).origin;
   // WP-S12: while the shop is on, the cart may call the checkout engine
   // (connect-src) and the checkout hands over to Stripe Checkout (form-action).
-  const engine = shopOn(MODE) ? new URL(CHECKOUT_ENGINE).origin : null;
+  const engine = shopOn(MODE) || appCheckoutOn(MODE) ? new URL(CHECKOUT_ENGINE).origin : null;
   const connectSrc = [...new Set(["'self'", connect, ...(engine ? [engine] : [])])].join(" ");
   const formAction = [...new Set(["'self'", connect, ...(engine ? [engine, STRIPE_CHECKOUT] : [])])].join(" ");
   await writeFile(path.join(DIST, "_headers"), `/*
