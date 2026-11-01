@@ -21,6 +21,8 @@ test("the catalogue carries the FORMS groups and the app products", () => {
     assert.equal(p.prices, null, `${p.id}: no FORMS price`);
     assert.equal(p.purchasable, false, `${p.id}: not sold by the FORMS checkout`);
     assert.equal(p.app_prices.annual, p.app_prices.per_month * 12);
+    assert.equal(p.app_prices.cadences.annual.per_month, p.app_prices.per_month);
+    assert.ok(Number.isInteger(p.app_prices.cadences.monthly.per_month), "whole-dollar loaded prices (workbook)");
   }
   assert.equal(cat.prices_exclude_gst, true);
   assert.equal(cat.app.founding.places, 20);
