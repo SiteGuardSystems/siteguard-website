@@ -136,7 +136,7 @@ test("SiteGuard App: a page for every trade in data/app-packages.json, module lo
     for (const l of app.levels) assert.ok(html.includes(`${t.documents_by_level[l.slug]} documents`), `${t.slug} ${l.slug}`);
     assert.ok(get("app/trade-packages/index.html").includes(`href="/app/trade-packages/${t.slug}/"`), t.slug);
   }
-  for (const m of ["safety", "quality", "environmental", "management"]) assert.match(get(`app/${m}/index.html`), new RegExp(`<img src="/assets/brand/sg-${m}-lockup.png"`));
+  for (const m of ["safety", "quality", "environmental", "management"]) assert.match(get(`app/${m}/index.html`), new RegExp(`<img src="/assets/brand/sg-${m}-lockup.svg"`));
   for (const { f, html } of pages) assert.ok(!/\bSG-[A-Z]-[A-Z]{3}-|\bAU-\d\d\b|\bNEW-\d/.test(html), `${f}: internal document code`);
 });
 
@@ -145,7 +145,7 @@ test("SiteGuard Audit: counts from data/audit-checklists.json, the Audit lockup,
   assert.equal(Object.values(cl.by_type).reduce((a, b) => a + b, 0), cl.checklists);
   const hub = get("audit/index.html");
   assert.ok(hub.includes(`${cl.checklists.toLocaleString("en-AU")} checklists`));
-  assert.match(hub, /<img src="\/assets\/brand\/sg-audit-lockup.png"/);
+  assert.match(hub, /<img src="\/assets\/brand\/sg-audit-lockup.svg"/);
   assert.match(hub, /Unlimited clients and audits/);
   const lib = get("audit/checklists/index.html");
   for (const [k, v] of Object.entries(cl.by_type)) assert.ok(lib.includes(`<td>${k}</td><td>${v.toLocaleString("en-AU")}</td>`), k);

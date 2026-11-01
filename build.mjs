@@ -31,6 +31,7 @@ import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
 // The FORMS shop and the cart (WP-S8): the same files as SiteGuard-Forms-Storefront.
 import { shopModel, rangesHtml, shopPages } from "./scripts/lib/shop.mjs";
 import { cartPages, cartBrowserParts, systemsCartScript, termsVersion } from "./scripts/lib/cart.mjs";
+import { moduleLabel, moduleLockup, modAttr } from "./scripts/lib/modules.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
@@ -118,11 +119,12 @@ function buyButton(interest, { cls = "btn btn-hivis" } = {}) {
 /** "Related videos" band on a module page (WP-S6 fills it from data/education.json). */
 const relatedVideos = (module) => relatedVideosBand(EDU, module);
 
+// [href, title, text, status line, module (colour and label; none for the App and the Planner)]
 const HOME_DOORS = () => [
-  ["/consulting/", "Consulting", "Senior HSEQ consulting: from one SWMS to an ISO-aligned integrated management system, audits and inspections, and monthly retainers."],
+  ["/consulting/", "Consulting", "Senior HSEQ consulting: from one SWMS to an ISO-aligned integrated management system, audits and inspections, and monthly retainers.", "", "consulting"],
   ["/app/", "SiteGuard App", "Safety, quality, environmental and management modules for trades and builders, with the documents for your work included and kept current.", appWhen()],
-  ["/audit/", "SiteGuard Audit", "Audits and inspections for consultants and businesses: checklists, photos, findings, corrective actions and the report.", appWhen()],
-  ["/education/", "Education", "Short videos for toolbox talks, inductions and how-tos, free to watch and share with your crews."],
+  ["/audit/", "SiteGuard Audit", "Audits and inspections for consultants and businesses: checklists, photos, findings, corrective actions and the report.", appWhen(), "audit"],
+  ["/education/", "Education", "Short videos for toolbox talks, inductions and how-tos, free to watch and share with your crews.", "", "education"],
   ["/planning/", "Planner", "Public holidays, building industry RDOs and the safety calendar for every state, and an inspection and testing planner."],
 ];
 
@@ -307,7 +309,7 @@ function crumbs(trail) {
     i === items.length - 1 ? `<li aria-current="page">${esc(l)}</li>` : `<li><a href="${h}">${esc(l)}</a></li>`).join("")}</ol></nav>`;
 }
 
-function page({ url, title, description, body, trail = [], jsonld = [], strip = true, noindex = false, canonical, preview = false }) {
+function page({ url, title, description, body, trail = [], jsonld = [], strip = true, noindex = false, canonical, preview = false, module = null }) {
   noindex = noindex || preview;
   const full = url === "/" ? title : `${title} | SiteGuard Systems`;
   const ld = [...jsonld];
@@ -339,7 +341,7 @@ ${/data-app-checkout|data-founding-cancel/.test(body) ? '<script src="/assets/ap
 <body${preview ? ' data-preview="1"' : ""}${MODE.beta ? ' data-beta="1"' : ""}${browseOnly() ? ' data-browse-only="1"' : ""}>
 ${preview ? '<div class="preview-bar" role="note"><strong>Preview build.</strong> This shows every package for review, including packages not yet released for sale. Checkout is switched off.</div>\n' : ""}
 ${header(url)}
-<main id="main">
+<main id="main"${modAttr(module)}>
 ${body}
 </main>
 ${strip ? partnerStrip(TRUST) : ""}
@@ -350,7 +352,8 @@ ${supportChatWidget(CHAT, EMAIL)}
 ` });
 }
 
-const head = (trail, h1, lede) => `<section class="page-head"><div class="wrap">${crumbs(trail)}<h1>${h1}</h1>${lede ? `<p class="lede">${lede}</p>` : ""}</div></section>`;
+// module: the page's module (data-module on <main>); the head shows its full lockup.
+const head = (trail, h1, lede, module = null) => `<section class="page-head"><div class="wrap">${crumbs(trail)}${module ? moduleLockup(module) : ""}<h1>${h1}</h1>${lede ? `<p class="lede">${lede}</p>` : ""}</div></section>`;
 const enquire = (label = "Send an enquiry") => `<p><a class="btn btn-hivis" href="/contact/">${label}</a></p>`;
 
 // Register interest (WP-S7): posts to the storefront's /api/lead as
@@ -518,7 +521,7 @@ ${introVideo(VIDEO, { heading: "Meet SiteGuard Systems" })}
 <section class="band band-grey"><div class="wrap">
   <h2>What SiteGuard does</h2>
   <p class="lede">For subcontractors and trades, builders, head and principal contractors, organisations working towards ISO, and HSEQ consultants.</p>
-  <div class="doors doors-5">${HOME_DOORS().map(([h, t, d, st]) => `<div class="door"><h3><a href="${h}">${t}</a></h3><p>${d}</p>${st ?? ""}</div>`).join("")}</div>
+  <div class="doors doors-5 mod-cards">${HOME_DOORS().map(([h, t, d, st, m]) => `<div class="door"${modAttr(m)}>${m ? moduleLabel(m) : ""}<h3><a href="${h}">${t}</a></h3><p>${d}</p>${st ?? ""}</div>`).join("")}</div>
 </div></section>
 <section class="band"><div class="wrap cols">
   <div><h2>The library behind the work</h2>
@@ -536,10 +539,10 @@ ${introVideo(VIDEO, { heading: "Meet SiteGuard Systems" })}
   });
 
   if (EDU) {
-    const ed = (trail, h1, lede) => head(trail, h1, lede);
+    const ed = (trail, h1, lede) => head(trail, h1, lede, "education");
     const TE = [["/education/", "SiteGuard Education"]];
     page({
-      url: "/education/", title: "SiteGuard Education: construction safety videos", trail: TE,
+      url: "/education/", title: "SiteGuard Education: construction safety videos", trail: TE, module: "education",
       description: "SiteGuard Education videos for Australian construction: how-tos, toolbox talks and inductions to show your crews, also on YouTube.",
       jsonld: [educationJsonLd(EDU, ORIGIN)].filter(Boolean),
       body: `${ed(TE, "SiteGuard Education", "Practical HSEQ videos for Australian construction, to watch here or show your crews.")}
@@ -548,7 +551,7 @@ ${educationBody(EDU)}`,
     for (const g of EDU.groups) {
       const tg = [...TE, [seriesPath(g.slug), g.title]];
       page({
-        url: seriesPath(g.slug), title: `${g.title}: SiteGuard Education videos`, trail: tg,
+        url: seriesPath(g.slug), title: `${g.title}: SiteGuard Education videos`, trail: tg, module: "education",
         description: `${g.title} from SiteGuard Education: ${(g.intro ?? "videos for Australian construction").replace(/\.$/, "")}.`,
         jsonld: [educationJsonLd(EDU, ORIGIN, g.slug)].filter(Boolean),
         body: `${ed(tg, g.title, "")}
@@ -564,11 +567,13 @@ ${seriesBody(EDU, g.slug)}`,
   <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Send an enquiry</a></div>
 </div></section>`;
     // Status-aware cross-links: planner -> SiteGuard Audit, state calendars -> SiteGuard App.
-    const cross = (href, name, text) => `<section class="band band-grey plan-cross"><div class="wrap cols">
-  <div><h2><a href="${href}">${name}</a></h2><p>${text}</p>${appWhen({ cls: "status-line" })}</div>
-  <div class="btn-row"><a class="btn" href="${href}">See ${name}</a></div>
+    // module: the cross-link is a module card (SiteGuard Audit); the SiteGuard App has no module colour.
+    const cross = (href, name, text, module = null) => `<section class="band band-grey plan-cross"><div class="wrap">
+  <div class="cols${module ? " mod-card" : ""}"${modAttr(module)}>
+  <div>${module ? moduleLabel(module) : ""}<h2><a href="${href}">${name}</a></h2><p>${text}</p>${appWhen({ cls: "status-line" })}</div>
+  <div class="btn-row"><a class="btn" href="${href}">See ${name}</a></div></div>
 </div></section>`;
-    const XAUDIT = cross("/audit/", "SiteGuard Audit", "Run these inspections in SiteGuard Audit: the checklist on site, photos, findings and corrective actions, and schedules and reminders so nothing falls due unseen.");
+    const XAUDIT = cross("/audit/", "SiteGuard Audit", "Run these inspections in SiteGuard Audit: the checklist on site, photos, findings and corrective actions, and schedules and reminders so nothing falls due unseen.", "audit");
     const XAPP = cross("/app/", "SiteGuard App", "Plan your sites in the SiteGuard App: projects, workforce and tickets, inspections and registers in one place, with your documents kept current.");
     const T = [["/planning/", "Planning calendar"]];
     page({
@@ -609,11 +614,11 @@ ${XAUDIT}${CTA}`,
   }
 
   page({
-    url: "/consulting/", title: "Consulting", trail: TC,
+    url: "/consulting/", title: "Consulting", trail: TC, module: "consulting",
     description: "HSEQ consulting for subcontractors, builders, organisations working towards ISO and Tier 1 work: audits and inspections, monthly retainers and leadership advisory.",
     jsonld: Object.entries(SERVICES).map(([slug, s]) => ({ "@context": "https://schema.org", "@type": "Service", name: s.title,
       description: s.lede, provider: { "@type": "ProfessionalService", name: "SiteGuard Systems", url: ORIGIN }, areaServed: "AU", url: `${ORIGIN}/consulting/${slug}/` })),
-    body: `${head(TC, "Consulting", "One SWMS, a monthly retainer or a full ISO framework. Senior practitioner guidance at every level, scoped and quoted to the work.")}
+    body: `${head(TC, "Consulting", "One SWMS, a monthly retainer or a full ISO framework. Senior practitioner guidance at every level, scoped and quoted to the work.", "consulting")}
 <section class="band"><div class="wrap"><div class="register">${Object.entries(SERVICES).map(([slug, s]) =>
   `<div class="register-row"><div><h3><a href="/consulting/${slug}/">${esc(s.title)}</a></h3><p>${esc(s.lede)}</p></div><span></span><a class="btn btn-small" href="/consulting/${slug}/">More</a></div>`).join("")}</div>
   <h2 class="mt-lg">Also under Consulting</h2>
@@ -637,10 +642,10 @@ ${XAUDIT}${CTA}`,
   for (const [slug, s] of Object.entries(SERVICES)) {
     const url = `/consulting/${slug}/`;
     page({
-      url, title: s.title, trail: [...TC, [url, s.title]], description: s.lede,
+      url, title: s.title, trail: [...TC, [url, s.title]], description: s.lede, module: "consulting",
       jsonld: [{ "@context": "https://schema.org", "@type": "Service", name: s.title, description: s.lede,
         provider: { "@type": "ProfessionalService", name: "SiteGuard Systems", url: ORIGIN }, areaServed: "AU" }],
-      body: `${head([...TC, [url, s.title]], esc(s.title), esc(s.lede))}
+      body: `${head([...TC, [url, s.title]], esc(s.title), esc(s.lede), "consulting")}
 <section class="band"><div class="wrap cols">
   <div><h2>What we do</h2><ul>${s.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
   <div>${s.note ? `<div class="note"><p>${typeof s.note === "function" ? s.note() : s.note}</p></div>` : ""}<h2 class="mt">Start with a conversation</h2><p>Tell us about the work and what you need. We reply within one business day with next steps and, where it fits, a scoped quote.</p>${enquire()}</div>
@@ -651,9 +656,9 @@ ${XAUDIT}${CTA}`,
   const tc = facts.trade_counts ?? [];
   const fam = f.by_family;
   page({
-    url: "/library/", title: "Document library", trail: [...TC, ["/library/", "Document library"]],
+    url: "/library/", title: "Document library", trail: [...TC, ["/library/", "Document library"]], module: "consulting",
     description: `${f.documents_rounded} controlled HSEQ documents: ${f.swms} SWMS across ${f.trades} trade series, ITPs, plans, policies, forms and registers, reviewed every 6 months.`,
-    body: `${head([...TC, ["/library/", "Document library"]], "Document library", `${esc(f.documents_rounded)} controlled, version-managed documents across every major trade and management-system discipline.`)}
+    body: `${head([...TC, ["/library/", "Document library"]], "Document library", `${esc(f.documents_rounded)} controlled, version-managed documents across every major trade and management-system discipline.`, "consulting")}
 <section class="band"><div class="wrap">
   <dl class="title-block">${[["SWMS", fam.SWMS], ["Inspection and test plans", fam.ITP], ["Plans", fam.Plan], ["Policies", fam.Policy], ["Forms", fam.Form], ["Registers", fam.Register]]
     .filter(([, n]) => n).slice(0, 4).map(([l, n]) => `<div><dt>${l}</dt><dd>${n}</dd></div>`).join("")}</dl>
@@ -677,11 +682,11 @@ ${XAUDIT}${CTA}`,
   });
 
   page({
-    url: "/about/", title: "About Daniel Silver", trail: [...TC, ["/about/", "About"]],
+    url: "/about/", title: "About Daniel Silver", trail: [...TC, ["/about/", "About"]], module: "consulting",
     description: "Daniel Silver: 27 years in Australian construction, from carpenter to senior site manager to HSEQ systems practitioner.",
     jsonld: [{ "@context": "https://schema.org", "@type": "Person", name: "Daniel Silver", jobTitle: "Founder and Principal HSEQ Consultant",
       worksFor: { "@type": "Organization", name: "SiteGuard Systems" }, hasCredential: CREDENTIAL, sameAs: [LINKEDIN] }],
-    body: `${head([...TC, ["/about/", "About"]], "Daniel Silver", "Founder and principal HSEQ consultant, SiteGuard Systems.")}
+    body: `${head([...TC, ["/about/", "About"]], "Daniel Silver", "Founder and principal HSEQ consultant, SiteGuard Systems.", "consulting")}
 <section class="band"><div class="wrap cols">
   <div class="prose">
     <p>Daniel has 27 years in the construction industry: he started as a carpenter, spent more than 16 years in senior site management, and moved into HSEQ systems management. He has worked with tier 1, tier 2 and tier 3 builders, large subcontractors, and civil and commercial projects up to $300 million.</p>

@@ -19,10 +19,11 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { esc } from "./md.mjs";
 import { showAppPrices, monthYear } from "./site-mode.mjs";
+import { moduleLabel, modAttr } from "./modules.mjs";
 
 export const MODULES = {
   safety: {
-    name: "SiteGuard Safety", lockup: "/assets/brand/sg-safety-lockup.png",
+    name: "SiteGuard Safety",
     lede: "SWMS for your trade, site forms, inductions, inspections and incident records, with your workforce and tickets carried into the documents.",
     items: ["SWMS for your trade and the high risk construction work you do, with your business details filled in",
       "Core site forms: inductions, pre-starts, toolbox talks, hazard, incident and first aid records, inspections",
@@ -30,7 +31,7 @@ export const MODULES = {
       "Tier 1 safety documents at Heavy Commercial: permits, emergency and health programs"],
   },
   quality: {
-    name: "SiteGuard Quality", lockup: "/assets/brand/sg-quality-lockup.png",
+    name: "SiteGuard Quality",
     lede: "Defects, non-conformances and inspection and test plans, with hold and witness points released on site.",
     items: ["Lodge a defect on site in seconds: location, photos, date and time, and a completion date",
       "Defects not closed by their date become non-conformances, tracked to close-out",
@@ -38,14 +39,14 @@ export const MODULES = {
       "Defect, NCR and ITP registers, and the handover record pack"],
   },
   environmental: {
-    name: "SiteGuard Environmental", lockup: "/assets/brand/sg-environmental-lockup.png",
+    name: "SiteGuard Environmental",
     lede: "The environmental basics a site expects of its trades, and full environmental management for builders.",
     items: ["Waste, spill, dust and noise controls and records (Environmental Essentials)",
       "Spill and waste registers that fill from what you record",
       "Full environmental management for builders: plans, inspections and registers"],
   },
   management: {
-    name: "SiteGuard Management", lockup: "/assets/brand/sg-management-lockup.png",
+    name: "SiteGuard Management",
     lede: "Your organisation record: policies, workforce, tickets and competency, and the prequalification documents principal contractors ask for.",
     items: ["One organisation record: company details, policies, workforce, licences and tickets",
       "Workforce and tickets carried into your SWMS",
@@ -76,11 +77,12 @@ export const moneyCents = (c) => (c % 100 === 0 ? money(c / 100)
 export const appProductId = { level: (l) => `app:trade:${l.slug}`, bundle: (b) => `app:builder:${b.slug.replace(/^builder-/, "")}`, audit: "app:audit:seat" };
 const perMonth = (n) => `${money(n)} a month <small>+GST</small>`;
 const range = (ns) => (Math.min(...ns) === Math.max(...ns) ? `${ns[0]}` : `${Math.min(...ns)} to ${Math.max(...ns)}`);
+// The SiteGuard App lockup (not a module: no module colour). Module marks are in modules.mjs.
 const lockup = (src, alt, w = 171) => `<p class="lockup"><img src="${src}" alt="${esc(alt)}" width="${w}" height="60"></p>`;
 
 /**
  * Page specs for every SiteGuard App page. ctx: { mode, head, buy, when, related }
- * (head(trail, h1, lede), buy(interest), when(opts) the status line,
+ * (head(trail, h1, lede, module), buy(interest), when(opts) the status line,
  * related(module) the "Related videos" band or "").
  */
 export function appPages(app, ctx) {
@@ -91,7 +93,7 @@ export function appPages(app, ctx) {
   const out = [];
   const docsRange = (lv) => range(app.trades.map((t) => t.documents_by_level[lv]));
   const modName = (m) => (MODULES[m] ? MODULES[m].name : m === "audit" ? "SiteGuard Audit" : m);
-  const modLink = (m) => (MODULES[m] ? `<a href="/app/${m}/">${modName(m)}</a>` : m === "audit" ? `<a href="/audit/">SiteGuard Audit</a>` : esc(m));
+  const modLink = (m) => (MODULES[m] ? `<a class="mod-link"${modAttr(m)} href="/app/${m}/">${modName(m)}</a>` : m === "audit" ? `<a class="mod-link"${modAttr("audit")} href="/audit/">SiteGuard Audit</a>` : esc(m));
   const buyBand = (interest = "app") => `<section class="band band-ink"><div class="wrap">
   <h2>${mode.app_status === "live" ? "Get started with the SiteGuard App" : "Be first on the SiteGuard App"}</h2>
   ${when({ cls: "lede status-line" })}
@@ -117,7 +119,7 @@ export function appPages(app, ctx) {
   ${lockup("/assets/brand/sg-app-lockup.png", "SiteGuard App", 196)}
   ${when({ cls: "note status-line" })}
   <h2>Modules</h2>
-  <div class="doors">${MODULE_SLUGS.map((m) => `<div class="door"><h3><a href="/app/${m}/">${MODULES[m].name}</a></h3><p>${esc(MODULES[m].lede)}</p></div>`).join("")}</div>
+  <div class="doors mod-cards">${MODULE_SLUGS.map((m) => `<div class="door"${modAttr(m)}>${moduleLabel(m)}<h3><a href="/app/${m}/">${MODULES[m].name}</a></h3><p>${esc(MODULES[m].lede)}</p></div>`).join("")}</div>
 </div></section>
 <section class="band band-grey"><div class="wrap cols">
   <div><h2><a href="/app/trade-packages/">Trade packages</a></h2><p>One package for each of ${app.trades.length} trades, at three levels: ${app.levels.map((l) => esc(l.name)).join(", ")}. Same modules for every trade at a level; the documents are your trade's.</p><p><a class="btn" href="/app/trade-packages/">Find your trade</a></p></div>
@@ -178,7 +180,7 @@ ${buyBand()}`,
 <section class="band"><div class="wrap">
   ${when({ cls: "note status-line" })}
   <div class="rungs">${app.bundles.map((b) => `<div class="rung"><h3>${esc(b.name.replace(/^Builder /, ""))}</h3><p class="summary">${esc(b.who)}.</p>
-    <ul>${b.components.map((c, i) => `<li>${MODULES[b.modules[i]] ? `<a href="/app/${b.modules[i]}/">${esc(c.replace(/^(\w+)/, (w) => `SiteGuard ${w}`))}</a>` : `<a href="/audit/">SiteGuard Audit</a> (one seat)`}</li>`).join("")}</ul>
+    <ul>${b.components.map((c, i) => `<li>${MODULES[b.modules[i]] ? `<a class="mod-link"${modAttr(b.modules[i])} href="/app/${b.modules[i]}/">${esc(c.replace(/^(\w+)/, (w) => `SiteGuard ${w}`))}</a>` : `<a class="mod-link"${modAttr("audit")} href="/audit/">SiteGuard Audit</a> (one seat)`}</li>`).join("")}</ul>
     ${prices ? `<div class="prices"><p class="price-line"><span class="label">Up to ${b.reference_projects} active projects</span><span class="amount">${perMonth(b.price_month)}</span></p><p class="gst">Billed annually.</p></div>` : ""}</div>`).join("")}</div>
 </div></section>
 ${howItWorks}
@@ -191,10 +193,10 @@ ${buyBand()}`,
     const inLevels = app.levels.filter((l) => l.modules.includes(m)).map((l) => l.name);
     const inBundles = app.bundles.filter((b) => b.modules.includes(m)).map((b) => b.name);
     out.push({
-      url: `/app/${m}/`, title: `${M.name}: a SiteGuard App module`, trail: tm, description: M.lede,
-      body: `${head(tm, M.name, esc(M.lede))}
+      url: `/app/${m}/`, title: `${M.name}: a SiteGuard App module`, trail: tm, description: M.lede, module: m,
+      body: `${head(tm, M.name, esc(M.lede), m)}
 <section class="band"><div class="wrap cols">
-  <div>${lockup(M.lockup, M.name)}<h2>What it does</h2><ul>${M.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
+  <div><h2>What it does</h2><ul>${M.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
   <div>${when({ cls: "note status-line" })}<h2>Where you get it</h2><ul>
     ${inLevels.length ? `<li><a href="/app/trade-packages/">Trade packages</a>: ${inLevels.map(esc).join(", ")}</li>` : ""}
     ${inBundles.length ? `<li><a href="/app/builder-bundles/">Builder bundles</a>: ${inBundles.map((b) => esc(b.replace(/^Builder /, ""))).join(", ")}</li>` : ""}</ul>

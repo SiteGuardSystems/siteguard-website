@@ -446,3 +446,64 @@ details.doclist-titles li { display: block; }
 .help-chat-form { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
 .help-chat-form input { flex: 1 1 10rem; min-width: 0; padding: .5rem; font: inherit; }
 .help-chat-form label:not(.sr-only) { flex-basis: 100%; font-size: .85rem; }
+
+/* Module colour identity (scripts/lib/modules.mjs). One set of tokens per
+   module, from the Brand Suite Rev06 palette, taken by a card or a page's
+   <main> through data-module (the CSP forbids inline style):
+     --mod       brand colour
+     --mod-tint  --mod at 8% on white (card and page-head background)
+     --mod-line  --mod at 30% on white (card border)
+     --mod-ink   --mod darkened only as far as needed for 4.5:1 on --mod-tint
+                 and on white (small text and links)
+     --mod-on    text on a --mod fill (primary buttons), 4.5:1 or better
+   test/modules.test.js computes the WCAG ratios from these values. */
+[data-module="safety"] { --mod: #C62828; --mod-tint: #FAEEEE; --mod-line: #EEBFBF; --mod-ink: #C62828; --mod-on: #FFFFFF; }
+[data-module="quality"] { --mod: #1D5C96; --mod-tint: #EDF2F7; --mod-line: #BBCEE0; --mod-ink: #1D5C96; --mod-on: #FFFFFF; }
+[data-module="environmental"] { --mod: #2E7D32; --mod-tint: #EEF5EF; --mod-line: #C0D8C2; --mod-ink: #2E7D32; --mod-on: #FFFFFF; }
+[data-module="management"] { --mod: #8A5A00; --mod-tint: #F6F2EB; --mod-line: #DCCEB3; --mod-ink: #8A5A00; --mod-on: #FFFFFF; }
+[data-module="forms"] { --mod: #F58220; --mod-tint: #FEF5ED; --mod-line: #FCDABC; --mod-ink: #AD5C17; --mod-on: #2B2A2F; }
+[data-module="audit"] { --mod: #6A6E77; --mod-tint: #F3F3F4; --mod-line: #D2D4D6; --mod-ink: #6A6E77; --mod-on: #FFFFFF; }
+[data-module="consulting"] { --mod: #6A6E77; --mod-tint: #F3F3F4; --mod-line: #D2D4D6; --mod-ink: #6A6E77; --mod-on: #FFFFFF; }
+[data-module="education"] { --mod: #5B3F9E; --mod-tint: #F2F0F7; --mod-line: #CEC5E2; --mod-ink: #5B3F9E; --mod-on: #FFFFFF; }
+
+/* Marks: the single-line label on cards, the full lockup in page heads. */
+.mod-label { margin: 0 0 0.9rem; }
+.mod-label img { height: 28px; width: auto; display: block; }
+.mod-lockup { margin: 0 0 1.1rem; }
+.mod-lockup img { height: 84px; width: auto; display: block; }
+@media (max-width: 760px) { .mod-lockup img { height: 64px; } }
+
+/* Module cards: App hub, home "What SiteGuard does", Audit cross-links.
+   Cards without a module (the SiteGuard App, the Planner) stay white. */
+.doors.mod-cards { border: 0; gap: 1rem; }
+.mod-cards .door, .mod-cards .door:last-child { border: 1px solid var(--rule); border-top: 5px solid var(--ink); background: var(--paper); }
+.mod-cards .door[data-module], .mod-card { background: var(--mod-tint); border: 1px solid var(--mod-line); border-top: 5px solid var(--mod); }
+.mod-card { padding: 1.5rem; }
+.mod-cards .door[data-module] a, .mod-card a:not(.btn) { color: var(--mod-ink); }
+.mod-cards .door[data-module] a:hover, .mod-card a:not(.btn):hover { color: var(--ink); }
+.mod-card h2 { margin-top: 0; }
+.mod-card > .btn-row { align-self: start; }
+a.mod-link { color: var(--mod-ink); font-weight: 600; }
+a.mod-link:hover { color: var(--ink); }
+
+/* Module pages and the Audit, Education and Consulting tabs: a tinted page
+   head with a 5px rule in the module colour; the body stays white. */
+main[data-module] > .page-head { background: var(--mod-tint); border-bottom: 5px solid var(--mod); }
+main[data-module] .band:not(.band-ink) + .band:not(.band-ink) { border-top: 1px solid var(--mod-line); }
+main[data-module] .register { border-top-color: var(--mod); }
+main[data-module] .doc-table th { border-bottom-color: var(--mod); }
+main[data-module] .note { border-left-color: var(--mod); background: var(--mod-tint); }
+main[data-module] .btn-hivis, main[data-module] .band-ink .btn-hivis { background: var(--mod); border-color: var(--mod); color: var(--mod-on); }
+main[data-module] .btn-hivis:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+main[data-module] .band-ink .btn-hivis:hover { background: #fff; border-color: #fff; color: var(--ink); }
+main[data-module] .edu-tabs .edu-count { background: var(--mod); color: var(--mod-on); }
+main[data-module] .plan-states a:hover { background: var(--mod-tint); }
+main[data-module] .plan-states a[aria-current="page"] { background: var(--mod); border-color: var(--mod); color: var(--mod-on); }
+
+/* Status boxes ("Coming soon", "Launching …"): white with a 4px bar in the
+   module colour (ink where there is no module), never the hi-vis Forms tint. */
+.note.status-line, main[data-module] .note.status-line, .door .status-line {
+  background: var(--paper); border-left: 4px solid var(--mod, var(--ink)); border-top: 1px solid var(--mod-line, var(--rule));
+  border-right: 1px solid var(--mod-line, var(--rule)); border-bottom: 1px solid var(--mod-line, var(--rule));
+}
+.plan-cross .status-line { display: inline-block; background: var(--paper); border-left: 4px solid var(--mod, var(--ink)); padding: 0.2rem 0.6rem; }

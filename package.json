@@ -11,7 +11,8 @@
     "site-mode-check": "node scripts/site-mode-check.mjs",
     "sync-site-mode": "node scripts/site-mode-check.mjs --sync",
     "test": "node build.mjs && node --test test/*.test.js",
-    "test:e2e": "node test/e2e.mjs"
+    "test:e2e": "node test/e2e.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "engines": { "node": ">=20.11 <25" },
   "devDependencies": { "playwright": "1.56.1" }
