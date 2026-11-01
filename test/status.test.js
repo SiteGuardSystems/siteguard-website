@@ -4,13 +4,14 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { wordingHits } from "../build.mjs";
-import { checkStatusCopy, withoutStatusCopy, statusCopy, loadSiteMode } from "../scripts/lib/site-mode.mjs";
+import { checkStatusCopy, withoutStatusCopy, statusCopy, loadSiteMode, appStatusCopy, monthYear } from "../scripts/lib/site-mode.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const run = promisify(execFile);
@@ -59,12 +60,33 @@ test("coming_soon: no app or audit prices anywhere; every buy button is Register
   assert.ok(pages.has("register-interest/index.html"));
   assert.ok(!pages.has("app/pricing/index.html") && !pages.has("app/founding-offer/index.html"), "pricing and founding pages hidden while coming soon");
   assert.match(pages.get("index.html"), /class="cart-link nav-status" href="\/register-interest\/">Register interest</);
-  assert.match(pages.get("app/index.html"), /data-status-copy>Opens June 2027\. Register your interest now\./);
+  assert.match(pages.get("app/index.html"), /data-status-copy>Coming soon\. Register your interest now\./);
+});
+
+// Status wording (Dan, 1 Nov 2026): no launch date while coming soon.
+const STATUS_ELS = /<(\w+)\b[^>]*\bdata-status-copy\b[^>]*>([\s\S]*?)<\/\1>/g;
+test("coming_soon: no June 2027 (or any 2027) inside a data-status-copy element; every status line reads the same", () => {
+  const { pages } = builds.coming_soon;
+  let n = 0;
+  for (const [f, html] of pages) {
+    for (const [, , inner] of html.matchAll(STATUS_ELS)) {
+      n++;
+      assert.ok(!/June 2027|2027/.test(inner), `${f}: status copy carries a date: ${inner}`);
+      assert.ok(/^Coming soon\.( Register your interest now\.)?$/.test(inner), `${f}: status copy "${inner}"`);
+    }
+    if (isAppPage(f) || /^register-interest\//.test(f)) assert.ok(!/June 2027/.test(html), `${f}: mentions June 2027 while coming soon`);
+    const meta = (html.match(/<title>[^<]*<\/title>|<meta name="description" content="[^"]*"/g) ?? []).join(" ");
+    assert.ok(!/June 2027/.test(meta), `${f}: June 2027 in the title or description`);
+  }
+  assert.ok(n > 0, "status lines found");
 });
 
 test("presale: pre-launch lines say founding places are on sale", () => {
   const { pages } = builds.presale;
-  assert.match(pages.get("app/index.html"), /data-status-copy>Opens June 2027\. Founding places are on sale now\./);
+  const opens = monthYear(JSON.parse(readFileSync(path.join(ROOT, "data/app-packages.json"), "utf8")).launch.opens);
+  assert.ok(opens, "launch.opens in data/app-packages.json");
+  assert.ok(pages.get("app/index.html").includes(`data-status-copy>Launching ${opens}. Founding places are on sale now.`));
+  assert.ok(pages.get("audit/index.html").includes(`data-status-copy>Launching ${opens}.`));
   assert.ok(pages.has("app/pricing/index.html") && pages.has("app/founding-offer/index.html"));
   const pricing = pages.get("app/pricing/index.html");
   for (const p of ["A$196", "A$271", "A$496", "A$910", "A$1,279", "A$1,757", "A$75"]) assert.ok(pricing.includes(`${p} a month <small>+GST</small>`), p);
@@ -110,10 +132,20 @@ test("gated products and markets are refused", () => {
 });
 
 test("the build refuses pre-launch wording once live, and the FORMS label once FORMS is open", () => {
-  const html = `<p>${statusCopy("Opens June 2027.")}</p><span>SiteGuard FORMS (coming soon)</span>`;
+  const html = `<p>${statusCopy("Coming soon.")}</p><span>SiteGuard FORMS (coming soon)</span>`;
   assert.equal(checkStatusCopy(html, { beta: true, app_status: "presale" }).length, 0);
   assert.equal(checkStatusCopy(html, { beta: true, app_status: "live" }).length, 1);
   assert.equal(checkStatusCopy(html, { beta: false, app_status: "live" }).length, 2);
+});
+
+test("appStatusCopy: one wording, the date only in presale and only from the config value", () => {
+  assert.equal(appStatusCopy({ app_status: "coming_soon" }, "2027-06"), `<p class="status-line" data-status-copy>Coming soon. Register your interest now.</p>`);
+  assert.equal(appStatusCopy({ app_status: "coming_soon" }, "2027-06", { tag: "span", short: true }), `<span class="status-line" data-status-copy>Coming soon.</span>`);
+  assert.equal(appStatusCopy({ app_status: "presale" }, "2027-06"), `<p class="status-line" data-status-copy>Launching June 2027. Founding places are on sale now.</p>`);
+  assert.equal(appStatusCopy({ app_status: "presale" }, "2027-09", { short: true }), `<p class="status-line" data-status-copy>Launching September 2027.</p>`);
+  assert.equal(appStatusCopy({ app_status: "live" }, "2027-06"), "");
+  assert.throws(() => appStatusCopy({ app_status: "presale" }, undefined));
+  assert.equal(monthYear("2027-13"), null);
 });
 
 test("site-mode.json: this repo's file is valid; bad values are reported", async () => {
