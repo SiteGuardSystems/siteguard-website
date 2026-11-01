@@ -10,6 +10,9 @@
 //   node build.mjs --production  # also fails on open [placeholders] in a legal page
 //   node build.mjs --sample-partners  # preview only: fills the partner and review
 //                                     # blocks from data/*.sample.json
+//   node build.mjs --app-status=presale --beta=false
+//                                # preview and test builds only: override
+//                                # data/site-mode.json (--production refuses)
 import { readFile, writeFile, mkdir, rm, cp } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,11 +21,15 @@ import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/li
 import { loadVideo, introVideo, videoJsonLd, withVideoCsp, withCspSources } from "./scripts/lib/video.mjs";
 import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, educationJsonLd } from "./scripts/lib/education.mjs";
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
+import { loadSiteMode, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
 const PRODUCTION = process.argv.includes("--production");
 const SAMPLE_PARTNERS = process.argv.includes("--sample-partners");
+const argValue = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+// Status switch (data/site-mode.json; scripts/lib/site-mode.mjs). Loaded in build().
+let MODE = { beta: true, app_status: "coming_soon" };
 // Partners, affiliates and the Google review link (data/partners.json,
 // data/google-reviews.json; scripts/lib/trust.mjs). Loaded in build().
 let TRUST = { partners: [], reviews: {} };
@@ -41,28 +48,94 @@ const EMAIL = "hello@siteguardsystems.com.au";
 const LINKEDIN = "https://www.linkedin.com/in/silverdaniel";
 const CREDENTIAL = "Exemplar Global Certified Lead Auditor — Integrated Management Systems (ISO 9001, 14001, 45001)";
 
-// "coming soon" was banned until 22 Oct 2026. Dan then asked for the SiteGuard
-// FORMS mentions on this site to read "coming soon", unlinked, while FORMS is in
-// beta (legal advice, pending settlement). Allowed only in that exact phrase.
-export const BANNED = /\b(compliant|certified|endorsed|guarantee[sd]?|4801|rolling out|in progress|quarterly)\b|(?<!SiteGuard FORMS[^<]{0,3})\bcoming soon\b/gi;
-// SiteGuard FORMS is not open yet: shown as text, never as a link.
-const FORMS_SOON = `<span class="forms-soon">SiteGuard FORMS (coming soon)</span>`;
+// Banned wording, checked on every built page except the legal pages.
+// "coming soon" and "launching" are allowed only inside elements marked
+// data-status-copy (pre-launch wording for the SiteGuard App and SiteGuard
+// Audit; none may remain once app_status is "live"), and in the exact
+// "SiteGuard FORMS (coming soon)" label while FORMS is in beta (Dan, 22 Oct
+// 2026: legal advice, pending settlement).
+export const BANNED = /\b(compliant|certified|endorsed|guarantee[sd]?|4801|rolling out|in progress|quarterly|coming soon|launching)\b/gi;
+// Gated products and markets are never mentioned on the site (rebaseline
+// 31 Oct 2026): CORE, SiteGuard AI, robotics, New Zealand and overseas.
+export const GATED = [/\bCORE\b/g, /\bSiteGuard AI\b|\brobot(?:s|ic|ics)?\b|\bhumanoid\b|\bquadruped\b|\bNew Zealand\b|\bSingapore\b|\boverseas\b/gi];
+
+/** Page text with what the banned-word check allows taken out. */
+export function checkedText(html, mode) {
+  let s = withoutStatusCopy(html.replace(/<script[\s\S]*?<\/script>/g, " "));
+  if (mode.beta) s = s.replace(new RegExp(FORMS_EXCEPTION.source, "g"), " ");
+  return s.replace(/<[^>]+>/g, " ").split(CREDENTIAL).join(" ");
+}
+
+/** Banned and gated words on a page (an empty list is a pass). */
+export function wordingHits(html, mode) {
+  const text = checkedText(html, mode);
+  return [...new Set([...(text.match(BANNED) ?? []), ...GATED.flatMap((re) => text.match(re) ?? [])])];
+}
+
+// SiteGuard FORMS: while it is in beta, text and never a link.
+const formsName = () => (MODE.beta ? `<span class="forms-soon">SiteGuard FORMS (coming soon)</span>` : `<a href="${FORMS}/">SiteGuard FORMS</a>`);
+
+const formsWill = () => (MODE.beta ? "will be available on" : "are available on");
+
+/** Pre-launch line for the SiteGuard App and SiteGuard Audit (none once live). */
+function appWhen({ tag = "p", cls = "status-line" } = {}) {
+  if (MODE.app_status === "live") return "";
+  return statusCopy(MODE.app_status === "presale" ? "Opens June 2027. Founding places are on sale now." : "Opens June 2027. Register your interest now.", { tag, cls });
+}
+
+/** The buy button for an app or audit product (interest: app or audit). */
+function buyButton(interest, { cls = "btn btn-hivis" } = {}) {
+  if (MODE.app_status === "live") return `<a class="${cls}" href="${interest === "audit" ? "/audit/" : "/app/"}">Get started</a>`;
+  return `<a class="${cls}" href="/register-interest/?interest=${interest}">Register interest</a>`;
+}
+
+const HOME_DOORS = () => [
+  ["/services/", "Consulting", "Senior HSEQ consulting, from one SWMS to an ISO-aligned integrated management system, scoped and quoted to the work."],
+  ["/app/", "SiteGuard App", "Safety, quality, environmental and management modules for trades and builders, with the documents for your work included and kept current.", appWhen()],
+  ["/audit/", "SiteGuard Audit", "Audits and inspections for consultants and businesses: checklists, photos, findings, corrective actions and the report.", appWhen()],
+  ["/education/", "Education", "Short videos for toolbox talks, inductions and how-tos, free to watch and share with your crews."],
+  ["/planning/", "Planner", "Public holidays, building industry RDOs and the safety calendar for every state, and an inspection and testing planner."],
+];
 
 const pages = [];
 const problems = [];
 const money = (n) => "$" + Number(n).toLocaleString("en-AU");
 
+// Main menu: Consulting · SiteGuard App · SiteGuard Audit · Education · Planner
+// · Forms, then Contact, the cart (hidden until checkout exists) and the
+// status button. A tab is current on its own pages and on the pages it lists.
 const NAV = [
-  ["/services/", "Services"], ["/library/", "Document library"], ["/planning/", "Planning"], ["/education/", "Education"], ["/about/", "About"], ["/contact/", "Contact"],
+  ["/services/", "Consulting", ["/services/", "/about/", "/library/"]],
+  ["/app/", "SiteGuard App"], ["/audit/", "SiteGuard Audit"],
+  ["/education/", "Education"], ["/planning/", "Planner"],
 ];
+// Cloudflare Pages _redirects, all 301. Every target must be a built page.
+export const REDIRECTS = [
+  ["/index.html", "/"],
+  ...["services", "library", "about", "contact", "partners", "planning", "education", "app", "audit"].map((p) => [`/${p}`, `/${p}/`]),
+  ["/planner", "/planning/"], ["/planner/", "/planning/"], ["/planner/*", "/planning/:splat"],
+];
+// Checkout (WP-S8 onwards) shows the cart; until then it stays hidden.
+const CART_ENABLED = false;
+
+/** The header button that follows the launch status. */
+function statusButton() {
+  if (MODE.app_status === "live") return ["/app/", "SiteGuard App"];
+  return ["/register-interest/", "Register interest"];
+}
 
 function header(url) {
+  const cur = (paths) => (paths.some((p) => url.startsWith(p)) ? ' aria-current="page"' : "");
+  const [sh, sl] = statusButton();
+  const forms = MODE.beta
+    ? `<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon</span>`
+    : `<a href="${FORMS}/">SiteGuard FORMS</a>`;
   return `<a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="wrap header-row">
     <a class="brand" href="/"><img src="/assets/shield.png" alt="" width="34" height="44"><span class="brand-name">SiteGuard <b>Systems</b></span></a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
-    <nav class="nav" id="site-nav" aria-label="Main">${NAV.map(([h, l]) => `<a href="${h}"${url.startsWith(h) ? ' aria-current="page"' : ""}>${l}</a>`).join("")}<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon</span></nav>
+    <nav class="nav" id="site-nav" aria-label="Main">${NAV.map(([h, l, also]) => `<a href="${h}"${cur(also ?? [h])}>${l}</a>`).join("")}${forms}<a href="/contact/"${cur(["/contact/"])}>Contact</a><button class="nav-cart" type="button" data-cart${CART_ENABLED ? "" : " hidden"}>Cart <span data-cart-count>0</span></button><a class="cart-link nav-status" href="${sh}"${cur([sh])}>${sl}</a></nav>
   </div>
 </header>`;
 }
@@ -70,11 +143,13 @@ function header(url) {
 function footer() {
   return `<footer class="site-footer"><div class="wrap">
   <div class="footer-grid">
-    <div><h2>SiteGuard Systems</h2><p>HSEQ consulting and controlled documentation for Australian construction. Melbourne, Victoria; working Australia-wide.</p></div>
-    <div><h2>Services</h2><ul>
+    <div><h2>SiteGuard Systems</h2><p>HSEQ consulting, the SiteGuard App and SiteGuard Audit for Australian construction. Melbourne, Victoria; working Australia-wide.</p></div>
+    <div><h2>Consulting</h2><ul>
       <li><a href="/services/subcontractors/">Subcontractors</a></li><li><a href="/services/builders/">Builders</a></li>
-      <li><a href="/services/iso-ims/">ISO and IMS</a></li><li><a href="/services/leadership-advisory/">Leadership and risk advisory</a></li></ul></div>
-    <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li><li><a href="/partners/">Partners and referrals</a></li><li><a href="/planning/">Planning calendar</a></li><li><a href="/education/">SiteGuard Education</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
+      <li><a href="/services/iso-ims/">ISO and IMS</a></li><li><a href="/services/leadership-advisory/">Leadership and risk advisory</a></li>
+      <li><a href="/library/">Document library</a></li><li><a href="/about/">About Daniel Silver</a></li></ul></div>
+    <div><h2>Products and tools</h2><ul><li><a href="/app/">SiteGuard App</a></li><li><a href="/audit/">SiteGuard Audit</a></li><li><a href="/education/">SiteGuard Education</a></li><li><a href="/planning/">Planner</a></li></ul></div>
+    <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li>${MODE.app_status === "live" ? "" : `<li><a href="/register-interest/">Register interest</a></li>`}<li><a href="/partners/">Partners and referrals</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
     <div><h2>Legal</h2><ul><li><a href="/legal/disclaimer/">Website Disclaimer</a></li><li><a href="/legal/privacy/">Privacy Policy</a></li><li><a href="/legal/website-terms/">Website Terms of Use</a></li></ul></div>
   </div>
   <p class="footer-base">SiteGuard provides frameworks, systems and advisory support. Work health and safety duties stay with the person conducting the business or undertaking.<br>© ${new Date().getFullYear()} SiteGuard Systems · ABN 36 765 797 871</p>
@@ -150,7 +225,7 @@ const SERVICES = {
     lede: "Practical, well-structured documentation for growing subcontractors and small builders, from a single SWMS to a full trade pack, without a complex engagement.",
     items: ["A single SWMS, scoped to your work, written and controlled", "Trade document packs for every major trade", "Site safety forms and induction records",
       "Safety walks and site inspections", "Toolbox talks and pre-start meeting records", "HSEQ coordination and administration"],
-    note: `Standard trade packs will be available on ${FORMS_SOON}. Until then, we can prepare the documents you need. <a href="/contact/">Contact us</a>.`,
+    note: () => `Standard trade packs ${formsWill()} ${formsName()}. For anything else, we can prepare the documents you need. <a href="/contact/">Contact us</a>.`,
   },
   builders: {
     title: "Builders and growing businesses", short: "Safety systems, audit support and incident investigation",
@@ -179,6 +254,13 @@ async function legal(file) {
 }
 
 async function build() {
+  const override = {};
+  if (argValue("app-status") !== undefined) override.app_status = argValue("app-status");
+  if (argValue("beta") !== undefined) override.beta = { true: true, false: false }[argValue("beta")] ?? argValue("beta");
+  if (PRODUCTION && Object.keys(override).length) problems.push("--app-status and --beta are for preview and test builds; a production build reads data/site-mode.json only");
+  const sm = await loadSiteMode(ROOT, override);
+  MODE = sm.mode;
+  for (const p of sm.problems) problems.push(`data: ${p}`);
   TRUST = await loadTrust(ROOT, "systems", { sample: SAMPLE_PARTNERS });
   for (const p of TRUST.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
   if (SAMPLE_PARTNERS) problems.push(`data: built with SAMPLE partners and reviews (--sample-partners)${PRODUCTION ? "; a production build can't use sample data" : " (open item: preview only)"}`);
@@ -196,7 +278,7 @@ async function build() {
 
   page({
     url: "/", title: "SiteGuard Systems | HSEQ consulting for Australian construction",
-    description: "Senior HSEQ consulting and controlled documentation for Australian construction: SWMS, safety systems, audit support and ISO-aligned management systems. Melbourne-based, Australia-wide.",
+    description: "Senior HSEQ consulting, the SiteGuard App and SiteGuard Audit for Australian construction: SWMS, safety systems, audits and inspections and ISO-aligned management systems. Melbourne-based, Australia-wide.",
     jsonld: [{ "@context": "https://schema.org", "@type": "ProfessionalService", name: "SiteGuard Systems", url: ORIGIN,
       logo: ORIGIN + "/assets/apple-touch-icon.png", email: EMAIL, areaServed: "AU",
       address: { "@type": "PostalAddress", addressLocality: "Melbourne", addressRegion: "VIC", addressCountry: "AU" },
@@ -204,8 +286,8 @@ async function build() {
       ...(VIDEO ? [videoJsonLd(VIDEO, ORIGIN)] : [])],
     body: `<section class="hero"><div class="wrap">
   <h1>HSEQ systems that hold up on site.</h1>
-  <p class="lede">Senior HSEQ consulting and controlled documentation for Australian construction, from a single SWMS for a subcontractor to an ISO-aligned integrated management system.</p>
-  <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Send an enquiry</a><a class="btn" href="/services/">See services</a></div>
+  <p class="lede">Senior HSEQ consulting, the SiteGuard App for trades and builders, and SiteGuard Audit for audits and inspections, all built on a library of ${esc(f.documents_rounded)} controlled documents reviewed every 6 months.</p>
+  <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Send an enquiry</a>${MODE.app_status === "live" ? `<a class="btn" href="/app/">See the SiteGuard App</a>` : `<a class="btn" href="/register-interest/">Register interest</a>`}</div>
   <dl class="title-block">
     <div><dt>Years in construction</dt><dd>27</dd></div>
     <div><dt>Controlled documents</dt><dd>${esc(f.documents_rounded)}</dd></div>
@@ -215,16 +297,16 @@ async function build() {
 </div></section>
 ${introVideo(VIDEO, { heading: "Meet SiteGuard Systems" })}
 <section class="band band-grey"><div class="wrap">
-  <h2>Who we help</h2>
-  <p class="lede">Subcontractors and small builders, tier 2 and tier 3 builders, head and principal contractors, organisations working towards ISO, and HSEQ consultants.</p>
-  <div class="doors">${Object.entries(SERVICES).map(([slug, s]) => `<div class="door"><h3><a href="/services/${slug}/">${esc(s.title)}</a></h3><p>${esc(s.short)}.</p></div>`).join("")}</div>
+  <h2>What SiteGuard does</h2>
+  <p class="lede">For subcontractors and trades, builders, head and principal contractors, organisations working towards ISO, and HSEQ consultants.</p>
+  <div class="doors doors-5">${HOME_DOORS().map(([h, t, d, st]) => `<div class="door"><h3><a href="${h}">${t}</a></h3><p>${d}</p>${st ?? ""}</div>`).join("")}</div>
 </div></section>
 <section class="band"><div class="wrap cols">
   <div><h2>The library behind the work</h2>
     <p>SiteGuard maintains ${esc(f.documents_rounded)} controlled, version-managed documents: ${f.swms} SWMS, ${f.by_family.ITP ?? 0} inspection and test plans, and the plans, policies, forms and registers of a full management system. Every document is written to Australian WHS laws (the OHS Act 2004 in Victoria) and reviewed against legislative change every 6 months.</p>
     <p><a href="/library/">See the document library</a></p></div>
   <div><h2>Buy documents directly</h2>
-    <p>Not every job needs a consulting engagement. Trade packs, builder packs and management-system packs will be available on ${FORMS_SOON}. Until then, we can prepare the documents you need.</p>
+    <p>Not every job needs a consulting engagement or an app. Trade packs, builder packs and management-system packs ${formsWill()} ${formsName()}. For anything else, we can prepare the documents you need.</p>
     <p><a class="btn" href="/contact/">Contact us</a></p></div>
 </div></section>
 <section class="band band-ink"><div class="wrap">
@@ -332,7 +414,7 @@ ${CTA}`,
       body: `${head([["/services/", "Services"], [url, s.title]], esc(s.title), esc(s.lede))}
 <section class="band"><div class="wrap cols">
   <div><h2>What we do</h2><ul>${s.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
-  <div>${s.note ? `<div class="note"><p>${s.note}</p></div>` : ""}<h2 class="mt">Start with a conversation</h2><p>Tell us about the work and what you need. We reply within one business day with next steps and, where it fits, a scoped quote.</p>${enquire()}</div>
+  <div>${s.note ? `<div class="note"><p>${typeof s.note === "function" ? s.note() : s.note}</p></div>` : ""}<h2 class="mt">Start with a conversation</h2><p>Tell us about the work and what you need. We reply within one business day with next steps and, where it fits, a scoped quote.</p>${enquire()}</div>
 </div></section>`,
     });
   }
@@ -357,7 +439,7 @@ ${CTA}`,
       <li>Written to Australian WHS laws (the OHS Act 2004 in Victoria) and aligned to ISO 45001, ISO 9001 and ISO 14001.</li>
       <li>The whole library is reviewed against legislative change every 6 months.</li></ul>
       <h2 class="mt-lg">Buy or commission</h2>
-      <p>Standard documents will be available on ${FORMS_SOON}, bought outright or on subscription. Until then, and for custom SWMS, project-specific plans and management systems, it is consulting work.</p>
+      <p>Standard documents ${formsWill()} ${formsName()}, bought outright or on subscription. Custom SWMS, project-specific plans and management systems are consulting work.</p>
       <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Commission a document</a></div></div>
   </div>
 </div></section>`,
@@ -409,6 +491,35 @@ ${CTA}`,
 ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "SiteGuard" })}`,
   });
 
+  // SiteGuard App and SiteGuard Audit hubs (filled out in WP-S4 and WP-S5).
+  for (const [url, name, interest, lede, items] of [
+    ["/app/", "SiteGuard App", "app", "Safety, quality, environmental and management modules for trades and builders, with the documents for your work included and kept current after every 6-monthly review.",
+      ["Trade packages for 25 trades, at Domestic, Light Commercial and Heavy Commercial levels", "Builder bundles for domestic, light commercial and heavy commercial builders", "Registers that fill from what you record on site", "Your documents, with your details, pushed to you after each 6-monthly legislative review"]],
+    ["/audit/", "SiteGuard Audit", "audit", "Audits and inspections for consultants and businesses: run the checklist on site, take photos, record findings and corrective actions, and issue the report.",
+      ["Unlimited clients and audits for each auditor", "A checklist library built from SiteGuard's controlled forms", "Findings and corrective actions in a register per client and project", "Works on site without a signal"]],
+  ]) {
+    page({
+      url, title: `${name}: ${interest === "app" ? "HSEQ software for trades and builders" : "audits and inspections"}`, trail: [[url, name]],
+      description: lede,
+      body: `${head([[url, name]], name, lede)}
+<section class="band"><div class="wrap cols">
+  <div><h2>What it does</h2><ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
+  <div>${appWhen({ cls: "note status-line" })}<div class="btn-row">${buyButton(interest)}</div></div>
+</div></section>`,
+    });
+  }
+
+  if (MODE.app_status !== "live") {
+    page({
+      url: "/register-interest/", title: "Register interest: SiteGuard App and SiteGuard Audit", trail: [["/register-interest/", "Register interest"]],
+      description: "Register your interest in the SiteGuard App and SiteGuard Audit, and we'll tell you when founding places and the app open.",
+      body: `${head([["/register-interest/", "Register interest"]], "Register interest", "Tell us whether you're interested in the SiteGuard App, SiteGuard Audit or both, and we'll keep you posted.")}
+<section class="band"><div class="wrap cols">
+  <div>${appWhen({ cls: "note status-line" })}<p>Send us an enquiry with your name, your business and the product you're interested in.</p>${enquire("Send an enquiry")}</div>
+</div></section>`,
+    });
+  }
+
   page({
     url: "/contact/sent/", title: "Enquiry sent", trail: [["/contact/", "Contact"], ["/contact/sent/", "Sent"]],
     description: "Your enquiry has been sent. We reply within one business day.",
@@ -445,10 +556,10 @@ async function main() {
     await mkdir(path.dirname(out), { recursive: true });
     await writeFile(out, p.html);
     if (!p.url.startsWith("/legal/")) {
-      const text = p.html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/Certified Lead Auditor/g, "");
-      const hits = text.match(BANNED);
-      if (hits) problems.push(`${p.url}: banned wording: ${[...new Set(hits)].join(", ")}`);
+      const hits = wordingHits(p.html, MODE);
+      if (hits.length) problems.push(`${p.url}: banned wording: ${hits.join(", ")}`);
     }
+    for (const m of checkStatusCopy(p.html, MODE)) problems.push(`${p.url}: ${m}`);
     if (titles.has(p.title)) problems.push(`${p.url}: duplicate title`);
     titles.add(p.title);
     for (const [, href] of p.html.matchAll(/href="(\/[^"#?]*)/g)) {
@@ -475,7 +586,8 @@ async function main() {
   Content-Type: text/calendar; charset=utf-8
   Cache-Control: public, max-age=3600
 `);
-  await writeFile(path.join(DIST, "_redirects"), `/index.html / 301\n/services /services/ 301\n/library /library/ 301\n/about /about/ 301\n/contact /contact/ 301\n/partners /partners/ 301\n/planning /planning/ 301\n/education /education/ 301\n`);
+  for (const [from, to] of REDIRECTS) if (!urls.has(to.replace(/:splat$/, ""))) problems.push(`_redirects: ${from} goes to ${to}, which isn't a page`);
+  await writeFile(path.join(DIST, "_redirects"), REDIRECTS.map(([from, to]) => `${from} ${to} 301`).join("\n") + "\n");
   console.log(`Built ${pages.length} pages into dist/`);
   const blocking = problems.filter((p) => PRODUCTION || !/open item/.test(p));
   for (const p of problems) console.log(`  ${blocking.includes(p) ? "ERROR" : "note "}: ${p}`);

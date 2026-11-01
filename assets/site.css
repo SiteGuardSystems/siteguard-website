@@ -385,3 +385,15 @@ mark.placeholder { background: var(--warn-wash); color: var(--ink); padding: 0 0
 .edu-empty { margin-top: 1rem; padding: 1.25rem 1.4rem; border: 1px dashed var(--rule-strong); background: var(--paper); max-width: 40rem; }
 .edu-empty p { margin: 0; }
 .edu-empty p + p { margin-top: 0.35rem; }
+
+/* Status switch (data/site-mode.json): header status button, the hidden
+   cart, and pre-launch lines (data-status-copy) for the SiteGuard App and
+   SiteGuard Audit. */
+.nav .nav-status { white-space: nowrap; }
+.nav-cart { background: none; border: 1px solid #fff6; color: #fff; font: 600 1rem/1 var(--f-cond); padding: 0.45rem 0.7rem; cursor: pointer; }
+.nav-cart[hidden] { display: none; }
+.status-line { font-weight: 600; color: var(--ink); }
+.door .status-line { display: inline-block; margin: 0; background: var(--hivis-wash); border-left: 4px solid var(--hivis); padding: 0.2rem 0.6rem; font-size: 0.95rem; }
+/* Long source titles (some carry a URL) wrap instead of pushing the page sideways at 360 px. */
+.plan-sources a { overflow-wrap: anywhere; }
+.doors-5 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
