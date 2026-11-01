@@ -9,6 +9,7 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | Library numbers and "from" prices | `data/site-facts.json`, written by Hseq-Dev `docs/build_catalogue.py --website <this repo>/data` |
 | Legal pages | `content/legal/`, copied from SiteGuard-Forms `app/server/data/legal` by `npm run sync-legal -- <path>` |
 | Enquiry form | posts to the storefront's `/api/lead` (`LEAD_ENDPOINT`, default `https://www.siteguardforms.com.au/api/lead`) |
+| Help chat (P11) | the "Questions?" widget on every page (`scripts/lib/support-chat.mjs`, `assets/support-chat.js`). The assistant runs on the SiteGuard app API (siteguard-audit `POST /api/support/public/chat`), never on this site. Until `data/support-chat.json` `api_base` (or `SUPPORT_CHAT_API_BASE`) is set it shows the support email only, and the CSP is unchanged |
 | Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
 | Google review link and rating | `data/google-reviews.json`, same way |
 
