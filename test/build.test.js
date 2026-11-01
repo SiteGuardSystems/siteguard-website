@@ -147,3 +147,8 @@ test("SiteGuard Audit: counts from data/audit-checklists.json, the Audit lockup,
   const lib = get("audit/checklists/index.html");
   for (const [k, v] of Object.entries(cl.by_type)) assert.ok(lib.includes(`<td>${k}</td><td>${v.toLocaleString("en-AU")}</td>`), k);
 });
+
+test("planner cross-links: planner and inspection pages to SiteGuard Audit, state calendars to SiteGuard App", () => {
+  for (const f of ["planning/index.html", "planning/inspections/index.html"]) assert.match(get(f), /class="band band-grey plan-cross"[\s\S]*href="\/audit\/"/, f);
+  for (const st of ["vic", "nsw", "qld", "sa", "wa", "tas", "act", "nt"]) assert.match(get(`planning/${st}/index.html`), /class="band band-grey plan-cross"[\s\S]*href="\/app\/"/, st);
+});
