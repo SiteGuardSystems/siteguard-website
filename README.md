@@ -24,7 +24,7 @@ Same file and shape as the storefront's (`beta`), plus `app_status` for the Site
 | | `presale` | founding places on sale (from March 2027): prices, the pricing page and the founding offer page show |
 | | `live` | the app modules are open (June 2027); the build fails if any pre-launch wording is left |
 
-Pre-launch wording ("coming soon", "launching", "Opens June 2027") is allowed only inside elements marked `data-status-copy` (`statusCopy()` in `site-mode.mjs`), so it can be found and removed when the status changes. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
+Every App and Audit status line comes from one helper, `appStatusCopy()` in `site-mode.mjs`: "Coming soon. Register your interest now." while `coming_soon` (no date anywhere), "Launching June 2027. Founding places are on sale now." while `presale`, nothing once `live`. The month is read from `launch.opens` in `data/app-packages.json` (the go-live month), never typed into copy. Pre-launch wording ("coming soon", "launching") is allowed only inside elements marked `data-status-copy` (`statusCopy()`), so it can be found and removed when the status changes; `test/status.test.js` fails if a `coming_soon` build has "2027" inside one. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
 
 The header cart is in the markup but hidden until checkout exists (`CART_ENABLED` in `build.mjs`).
 
@@ -95,3 +95,9 @@ enquiry form in a real browser. Both run in CI.
 | No gated products or markets (CORE, SiteGuard AI, robotics, New Zealand, Singapore, overseas) | build fails; `test/status.test.js` |
 | Redirects: all 301, every target a built page | `REDIRECTS` in `build.mjs`; build fails; `test/build.test.js` |
 | Lighthouse ≥ 90 / 95 / 90 / 95 | run against the Pages preview URL; static pages, self-hosted fonts, no third-party scripts |
+
+## SiteGuard App pages (`scripts/lib/app-pages.mjs`)
+
+`/app/`, `/app/trade-packages/` and a page per trade, `/app/builder-bundles/`, and a page per module (`/app/safety/`, `/quality/`, `/environmental/`, `/management/`) with its lockup from the Brand Suite Rev06 (`assets/brand/`). `/app/pricing/` is built once `app_status` is `presale` or `live`; `/app/founding-offer/` only while `presale`.
+
+The data is `data/app-packages.json`, **interim**: generated from the Packages and Pricing workbook (tabs Trade Packages, Trade Package Schedule, Trade Package Contents, App Bundles, Levers) by `python scripts/gen-app-packages.py <workbook.xlsx>`. It carries document titles and counts, never document codes, competitor names, costs or margins. Only issued masters are listed. Once the app products are in packages.py / catalogue.json as group `"app"`, read them from there and retire the generator.

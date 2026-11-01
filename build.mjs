@@ -21,7 +21,8 @@ import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/li
 import { loadVideo, introVideo, videoJsonLd, withVideoCsp, withCspSources } from "./scripts/lib/video.mjs";
 import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, educationJsonLd } from "./scripts/lib/education.mjs";
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
-import { loadSiteMode, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
+import { loadSiteMode, appStatusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
+import { loadAppPackages, appPages } from "./scripts/lib/app-pages.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
@@ -80,17 +81,22 @@ const formsName = () => (MODE.beta ? `<span class="forms-soon">SiteGuard FORMS (
 
 const formsWill = () => (MODE.beta ? "will be available on" : "are available on");
 
-/** Pre-launch line for the SiteGuard App and SiteGuard Audit (none once live). */
-function appWhen({ tag = "p", cls = "status-line" } = {}) {
-  if (MODE.app_status === "live") return "";
-  return statusCopy(MODE.app_status === "presale" ? "Opens June 2027. Founding places are on sale now." : "Opens June 2027. Register your interest now.", { tag, cls });
-}
+// The go-live month for the SiteGuard App and SiteGuard Audit: launch.opens
+// in data/app-packages.json. Loaded in build().
+let LAUNCH = {};
+
+/** Pre-launch line for the SiteGuard App and SiteGuard Audit (none once live; appStatusCopy in site-mode.mjs). */
+const appWhen = (opts = {}) => appStatusCopy(MODE, LAUNCH.opens, opts);
 
 /** The buy button for an app or audit product (interest: app or audit). */
 function buyButton(interest, { cls = "btn btn-hivis" } = {}) {
-  if (MODE.app_status === "live") return `<a class="${cls}" href="${interest === "audit" ? "/audit/" : "/app/"}">Get started</a>`;
+  if (MODE.app_status === "live") return `<a class="${cls}" href="/app/pricing/">Get started</a>`;
+  if (MODE.app_status === "presale") return `<a class="${cls}" href="/app/founding-offer/">Founding places</a>`;
   return `<a class="${cls}" href="/register-interest/?interest=${interest}">Register interest</a>`;
 }
+
+/** "Related videos" band on a module page (WP-S6 fills it from data/education.json). */
+const relatedVideos = () => "";
 
 const HOME_DOORS = () => [
   ["/consulting/", "Consulting", "Senior HSEQ consulting: from one SWMS to an ISO-aligned integrated management system, audits and inspections, and monthly retainers."],
@@ -125,7 +131,8 @@ const CART_ENABLED = false;
 
 /** The header button that follows the launch status. */
 function statusButton() {
-  if (MODE.app_status === "live") return ["/app/", "SiteGuard App"];
+  if (MODE.app_status === "live") return ["/app/pricing/", "Get started"];
+  if (MODE.app_status === "presale") return ["/app/founding-offer/", "Founding places"];
   return ["/register-interest/", "Register interest"];
 }
 
@@ -244,7 +251,7 @@ const SERVICES = {
     items: ["Site safety, quality and environmental inspections", "Internal audits against ISO 45001, ISO 9001 and ISO 14001, or an integrated management system",
       "Pre-audit gap reviews before a client, principal contractor or certification audit", "Subcontractor and supplier audits",
       "Findings and corrective actions in a register, followed through to close-out", "A written report for every audit or inspection"],
-    note: () => `Running audits and inspections yourself? See <a href="/audit/">SiteGuard Audit</a>.${MODE.app_status === "live" ? "" : " " + statusCopy("Opens June 2027.")}`,
+    note: () => `Running audits and inspections yourself? See <a href="/audit/">SiteGuard Audit</a>.${MODE.app_status === "live" ? "" : " " + appWhen({ tag: "span", cls: "status-copy", short: true })}`,
   },
   "iso-ims": {
     nav: "ISO and IMS", title: "ISO and integrated management systems", short: "ISO 45001, 9001 and 14001, IMS and ISO 45003",
@@ -290,6 +297,11 @@ async function build() {
   const sm = await loadSiteMode(ROOT, override);
   MODE = sm.mode;
   for (const p of sm.problems) problems.push(`data: ${p}`);
+  // SiteGuard App data first: its launch.opens is the go-live month every status line reads.
+  const ap = await loadAppPackages(ROOT);
+  for (const p of ap.problems) problems.push(`data: ${p}`);
+  LAUNCH = ap.app?.launch ?? {};
+  if (MODE.app_status === "presale" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(LAUNCH.opens ?? "")) problems.push("data: app-packages.json launch.opens (YYYY-MM) is needed while app_status is presale");
   TRUST = await loadTrust(ROOT, "systems", { sample: SAMPLE_PARTNERS });
   for (const p of TRUST.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
   if (SAMPLE_PARTNERS) problems.push(`data: built with SAMPLE partners and reviews (--sample-partners)${PRODUCTION ? "; a production build can't use sample data" : " (open item: preview only)"}`);
@@ -525,10 +537,14 @@ ${CTA}`,
 ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "SiteGuard" })}`,
   });
 
-  // SiteGuard App and SiteGuard Audit hubs (filled out in WP-S4 and WP-S5).
+  // SiteGuard App (scripts/lib/app-pages.mjs, data/app-packages.json).
+  if (ap.app) {
+    for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos })) page(spec);
+    if (MODE.app_status === "presale") problems.push("/app/founding-offer/: the founding offer terms (SG-LEGAL-13) are not published yet; solicitor review pending (open item)");
+  }
+
+  // SiteGuard Audit hub (filled out in WP-S5).
   for (const [url, name, interest, lede, items] of [
-    ["/app/", "SiteGuard App", "app", "Safety, quality, environmental and management modules for trades and builders, with the documents for your work included and kept current after every 6-monthly review.",
-      ["Trade packages for 25 trades, at Domestic, Light Commercial and Heavy Commercial levels", "Builder bundles for domestic, light commercial and heavy commercial builders", "Registers that fill from what you record on site", "Your documents, with your details, pushed to you after each 6-monthly legislative review"]],
     ["/audit/", "SiteGuard Audit", "audit", "Audits and inspections for consultants and businesses: run the checklist on site, take photos, record findings and corrective actions, and issue the report.",
       ["Unlimited clients and audits for each auditor", "A checklist library built from SiteGuard's controlled forms", "Findings and corrective actions in a register per client and project", "Works on site without a signal"]],
   ]) {

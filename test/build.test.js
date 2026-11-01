@@ -26,7 +26,8 @@ test("the brief's pages exist", () => {
     "consulting/iso-ims/index.html", "consulting/leadership-advisory/index.html", "consulting/audits-and-inspections/index.html",
     "consulting/retainers/index.html", "consulting/ims-tier-1-uplift/index.html", "library/index.html", "about/index.html",
     "contact/index.html", "partners/index.html", "legal/disclaimer/index.html", "legal/privacy/index.html", "404.html",
-    "app/index.html", "audit/index.html", "register-interest/index.html", "planning/index.html", "education/index.html"]) assert.ok(have.has(p), p);
+    "app/index.html", "app/trade-packages/index.html", "app/builder-bundles/index.html", "app/safety/index.html", "app/quality/index.html",
+    "app/environmental/index.html", "app/management/index.html", "audit/index.html", "register-interest/index.html", "planning/index.html", "education/index.html"]) assert.ok(have.has(p), p);
 });
 
 test("every page: title, description, canonical, one h1, skip link, no inline script or style", () => {
@@ -121,4 +122,17 @@ test("consulting: retainers at A$1,200 a month +GST and the IMS / Tier 1 uplift;
   for (const h of ["/about/", "/library/", "/consulting/audits-and-inspections/", "/consulting/retainers/"]) assert.ok(idx.includes(`href="${h}"`), h);
   for (const f of ["about/index.html", "library/index.html", "consulting/retainers/index.html"]) assert.match(get(f), /<a href="\/consulting\/" aria-current="page">Consulting<\/a>/, f);
   assert.match(get("library/index.html"), /Buy or commission[\s\S]*SiteGuard App[\s\S]*consulting/);
+});
+
+test("SiteGuard App: a page for every trade in data/app-packages.json, module lockups, no document codes", async () => {
+  const app = JSON.parse(await readFile(path.join(ROOT, "data/app-packages.json"), "utf8"));
+  assert.equal(app.group, "app");
+  assert.equal(app.trades.length, 25);
+  for (const t of app.trades) {
+    const html = get(`app/trade-packages/${t.slug}/index.html`);
+    for (const l of app.levels) assert.ok(html.includes(`${t.documents_by_level[l.slug]} documents`), `${t.slug} ${l.slug}`);
+    assert.ok(get("app/trade-packages/index.html").includes(`href="/app/trade-packages/${t.slug}/"`), t.slug);
+  }
+  for (const m of ["safety", "quality", "environmental", "management"]) assert.match(get(`app/${m}/index.html`), new RegExp(`<img src="/assets/brand/sg-${m}-lockup.png"`));
+  for (const { f, html } of pages) assert.ok(!/\bSG-[A-Z]-[A-Z]{3}-|\bAU-\d\d\b|\bNEW-\d/.test(html), `${f}: internal document code`);
 });
