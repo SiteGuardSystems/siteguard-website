@@ -23,7 +23,7 @@ import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/li
 import { loadVideo, introVideo, videoJsonLd, withVideoCsp, withCspSources } from "./scripts/lib/video.mjs";
 import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, educationJsonLd, relatedVideos as relatedVideosBand } from "./scripts/lib/education.mjs";
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
-import { loadSiteMode, shopOn, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
+import { loadSiteMode, shopOn, shopShown, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages } from "./scripts/lib/app-pages.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
@@ -91,8 +91,10 @@ export function wordingHits(html, mode) {
   return [...new Set([...(text.match(BANNED) ?? []), ...GATED.flatMap((re) => text.match(re) ?? [])])];
 }
 
-// SiteGuard FORMS: while it is in beta, text and never a link.
-const formsName = () => (MODE.beta ? `<span class="forms-soon">SiteGuard FORMS (coming soon)</span>` : `<a href="${shopOn(MODE) ? "/forms/" : `${FORMS}/`}">SiteGuard FORMS</a>`);
+// SiteGuard FORMS: while it is in beta (the storefront's one switch, Dan 1 Nov
+// 2026), a link to the shop under /forms/ to browse, marked beta; no orders.
+const formsHref = () => (shopShown(MODE) ? "/forms/" : `${FORMS}/`);
+const formsName = () => (MODE.beta ? `<a href="/forms/">SiteGuard FORMS</a> <span class="forms-soon">(beta)</span>` : `<a href="${formsHref()}">SiteGuard FORMS</a>`);
 
 const formsWill = () => (MODE.beta ? "will be available on" : "are available on");
 
@@ -188,6 +190,21 @@ export const REDIRECTS = [
 // Checkout (WP-S8 onwards) shows the cart; until then it stays hidden.
 // data/site-mode.json "checkout" (and FORMS out of beta): scripts/lib/site-mode.mjs shopOn().
 const cartEnabled = () => shopOn(MODE);
+// FORMS in beta (Dan, 1 Nov 2026, #94): the shop is browse only. The engine
+// refuses every FORMS order anyway; here the buy buttons, the cart and the
+// checkout never render. Server-rendered buy controls are taken out of the
+// shop pages, and the ones the script draws (single documents) are hidden by
+// body[data-browse-only] in site.css.
+const browseOnly = () => shopShown(MODE) && !shopOn(MODE);
+const BUY_CONTROL = /<button\b[^>]*\bdata-add-(?:pack|doc)=[^>]*>[\s\S]*?<\/button>|<a\b[^>]*\bdata-preview-disabled\b[^>]*>[\s\S]*?<\/a>/g;
+export const withoutBuyControls = (html) => html.replace(BUY_CONTROL, "");
+const BETA_NOTICE = `<section class="band" data-beta-notice><div class="wrap"><p class="status-line"><strong>SiteGuard FORMS is in beta.</strong> Browse the range and prices now. Orders aren't open yet; they open here and on siteguardforms.com.au at the same time.</p></div></section>`;
+/** A shop page body for browse only: no buy controls, and the beta notice under the page head. */
+function browseBody(body) {
+  const out = withoutBuyControls(body);
+  const i = out.indexOf("</section>");
+  return i < 0 ? BETA_NOTICE + out : `${out.slice(0, i + 10)}\n${BETA_NOTICE}${out.slice(i + 10)}`;
+}
 // WP-S10: SiteGuard App checkout through the engine: founding places while
 // app_status is "presale", subscriptions once it is "live". Needs "checkout"
 // on (the engine accepts this site), not FORMS out of beta. The engine's own
@@ -225,9 +242,7 @@ function statusButton() {
 function header(url) {
   const cur = (paths) => (paths.some((p) => url.startsWith(p)) ? ' aria-current="page"' : "");
   const [sh, sl] = statusButton();
-  const forms = MODE.beta
-    ? `<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon</span>`
-    : `<a href="${shopOn(MODE) ? "/forms/" : `${FORMS}/`}"${shopOn(MODE) ? cur(["/forms/"]) : ""}>SiteGuard FORMS</a>`;
+  const forms = `<a href="${formsHref()}"${shopShown(MODE) ? cur(["/forms/"]) : ""}>SiteGuard FORMS${MODE.beta ? " (beta)" : ""}</a>`;
   const cart = cartEnabled()
     ? `<a class="nav-cart" href="/cart/" data-cart${cur(["/cart/"])}>Cart <span data-cart-count>(0)</span></a>`
     : `<button class="nav-cart" type="button" data-cart hidden>Cart <span data-cart-count>0</span></button>`;
@@ -314,8 +329,8 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta prop
 <link rel="stylesheet" href="/assets/site.css">
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n")}
 <script src="/assets/site.js" defer></script>
-${/data-app-checkout|data-founding-cancel/.test(body) ? '<script src="/assets/app-checkout.js" defer></script>\n' : ""}${cartEnabled() ? '<script src="/assets/cart.js" defer></script>\n' : ""}</head>
-<body${preview ? ' data-preview="1"' : ""}>
+${/data-app-checkout|data-founding-cancel/.test(body) ? '<script src="/assets/app-checkout.js" defer></script>\n' : ""}${cartEnabled() || (browseOnly() && url.startsWith(SHOP_BASE + "/")) ? '<script src="/assets/cart.js" defer></script>\n' : ""}</head>
+<body${preview ? ' data-preview="1"' : ""}${MODE.beta ? ' data-beta="1"' : ""}${browseOnly() ? ' data-browse-only="1"' : ""}>
 ${preview ? '<div class="preview-bar" role="note"><strong>Preview build.</strong> This shows every package for review, including packages not yet released for sale. Checkout is switched off.</div>\n' : ""}
 ${header(url)}
 <main id="main">
@@ -747,8 +762,12 @@ ${MODE.app_status === "presale" ? `    <li><a href="/app/founding-offer/">Foundi
   // The FORMS shop and the cart (WP-S8): the storefront's own page builders
   // (scripts/lib/shop.mjs, cart.mjs) from the same catalogue, under /forms/.
   // Every shop page is canonical on siteguardforms.com.au and left out of this
-  // sitemap. One cart for everything; checkout goes to the storefront's engine.
-  if (shopOn(MODE)) {
+  // sitemap. The cart is FORMS documents and packs only (Q1 narrowed by Dan
+  // 1 Nov: App "Subscribe" and founding places have their own checkouts);
+  // checkout goes to the storefront's engine. While FORMS is in beta the shop
+  // shows to browse only (browseBody), with no cart pages.
+  if (shopShown(MODE)) {
+    const shopBody = (b) => (browseOnly() ? browseBody(b) : b);
     const model = shopModel(cat);
     const T = [["/forms/", "SiteGuard FORMS"]];
     const shopCrumbs = (trail) => crumbs([...T, ...trail]);
@@ -756,15 +775,17 @@ ${MODE.app_status === "presale" ? `    <li><a href="/app/founding-offer/">Foundi
       url: "/forms/", title: "SiteGuard FORMS: HSEQ documents to buy", trail: T, canonical: `${FORMS}/`, preview: cat.preview,
       description: "SiteGuard FORMS packs and single documents for Australian construction: SWMS, ITPs, plans, forms and registers, filled with your details and emailed as PDFs.",
       body: `${head(T, "SiteGuard FORMS", "Site-ready HSEQ documents with your name on them: SWMS, inspection and test plans, management plans, forms and registers, filled with your business and project details and emailed as PDFs.")}
-<section class="band band-grey"><div class="wrap">
+${browseOnly() ? BETA_NOTICE : ""}<section class="band band-grey"><div class="wrap">
   <h2>Choose a range</h2>
   <div class="register">${rangesHtml(model, SHOP_BASE)}</div>
   <p class="mt"><a href="/forms/documents/">Single documents</a> · <a href="/forms/subscriptions/">Subscriptions</a> · <a href="/forms/how-ordering-works/">How ordering works</a> · <a href="/forms/faq/">Questions</a></p>
 </div></section>`,
     });
     const out = shopPages({ cat, model, base: SHOP_BASE, origin: FORMS, appUrl: FORMS_APP, isoUrl: "/consulting/iso-ims/", beta: MODE.beta, crumbs: (trail) => shopCrumbs(trail) });
-    for (const spec of out.pages) page({ ...spec, trail: [...T, ...spec.trail], canonical: FORMS + spec.url.slice(SHOP_BASE.length) });
+    for (const spec of out.pages) page({ ...spec, body: shopBody(spec.body), trail: [...T, ...spec.trail], canonical: FORMS + spec.url.slice(SHOP_BASE.length) });
     shopFiles.push(...out.files);
+  }
+  if (shopOn(MODE)) {
     const notice = await legal("checkout-notice.md");
     const noticeBody = notice.body.split("\n").filter((l) => !/☐/.test(l)).join("\n").replace(/^>\s?$/gm, "");
     for (const spec of cartPages({ crumbs, preview: cat.preview, noticeHtml: render(noticeBody, { linkMap: {} }),
@@ -814,6 +835,9 @@ async function main() {
       if (hits.length) problems.push(`${p.url}: banned wording: ${hits.join(", ")}`);
     }
     for (const m of checkStatusCopy(p.html, MODE)) problems.push(`${p.url}: ${m}`);
+    // #96 (Q1 narrowed by Dan 1 Nov): an App plan or a founding place never goes in the cart.
+    for (const [, id] of p.html.matchAll(/data-add-(?:pack|doc)="((?:app|founding)[:_-][^"]*)"/gi)) problems.push(`${p.url}: ${id} has an Add to cart button; App plans and founding places have their own checkout`);
+    if (browseOnly() && /data-add-(?:pack|doc)=|data-checkout\b|href="\/cart\/"/.test(p.html)) problems.push(`${p.url}: a buy button, cart or checkout while FORMS is in beta`);
     if (titles.has(p.title)) problems.push(`${p.url}: duplicate title`);
     titles.add(p.title);
     for (const [, href] of p.html.matchAll(/href="(\/[^"#?]*)/g)) {
@@ -827,7 +851,7 @@ async function main() {
     await mkdir(path.dirname(path.join(DIST, rel)), { recursive: true });
     await writeFile(path.join(DIST, rel), content);
   }
-  if (shopOn(MODE)) await writeFile(path.join(DIST, "assets/cart.js"), systemsCartScript(await cartBrowserParts(), { engine: CHECKOUT_ENGINE, root: `${SHOP_BASE}/` }));
+  if (shopShown(MODE)) await writeFile(path.join(DIST, "assets/cart.js"), systemsCartScript(await cartBrowserParts(), { engine: CHECKOUT_ENGINE, root: `${SHOP_BASE}/` }));
   await writeFile(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.map((p) => `  <url><loc>${ORIGIN}${p.url}</loc></url>`).join("\n")}\n</urlset>\n`);
   await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\n${shopOn(MODE) ? "Disallow: /cart/\nDisallow: /order/\n" : ""}Sitemap: ${ORIGIN}/sitemap.xml\n`);
   // Cloudflare Pages headers and redirects.

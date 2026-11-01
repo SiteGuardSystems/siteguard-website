@@ -16,27 +16,30 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 
 ## Status switch (`data/site-mode.json`)
 
-Same file and shape as the storefront's (`beta`), plus `app_status` for the SiteGuard App and SiteGuard Audit (`scripts/lib/site-mode.mjs`):
+`app_status` for the SiteGuard App and SiteGuard Audit, and `checkout` (`scripts/lib/site-mode.mjs`). FORMS `beta` is **not** in this file.
+
+**One beta switch (Dan, 1 Nov 2026, #94).** The FORMS shop is in beta on both sites, and both read one switch: the storefront's `data/site-mode.json` `beta`, the source of truth because the storefront is the checkout engine. It is vendored at `vendor/siteguard-forms-storefront/data/site-mode.json` and pinned by `site-mode.lock` (repo, ref, commit, sha256, beta), like `dcr.lock`. The build refuses a `beta` key in this repo's file, and a vendored copy that doesn't match the lock. CI's **site-mode drift check** (`npm run site-mode-check -- --upstream`, also daily in `.github/workflows/site-mode-drift.yml`) fails when the storefront's beta differs from the vendored one. When Dan turns beta off in the storefront: `npm run sync-site-mode`, commit, rebuild, and both sites open together. The engine refuses every FORMS order while its beta is true whatever this site shows; this site only mirrors it to keep the buttons hidden.
 
 | Key | Value | Effect |
 |---|---|---|
-| `beta` | `true` | SiteGuard FORMS shows as the unlinked label "SiteGuard FORMS: coming soon" |
-| | `false` | a link to siteguardforms.com.au; the build fails if the coming-soon label is left anywhere |
+| `beta` (storefront's) | `true` | the FORMS shop shows under `/forms/` to browse only: a "SiteGuard FORMS is in beta" notice, no buy or subscribe buttons, no cart, no checkout (`data-browse-only`); the menu says "SiteGuard FORMS (beta)" |
+| | `false` | with `checkout` true, the shop and cart open; with `checkout` false, a link to siteguardforms.com.au |
 | `app_status` | `coming_soon` | no app or audit prices anywhere; every buy button is "Register interest"; the header status button goes to `/register-interest/` |
 | | `presale` | founding places on sale (from March 2027): prices, the pricing page and the founding offer page show |
 | | `live` | the app modules are open (June 2027); the build fails if any pre-launch wording is left |
 
 Pre-launch wording ("coming soon", "launching", "Opens June 2027") is allowed only inside elements marked `data-status-copy` (`statusCopy()` in `site-mode.mjs`), so it can be found and removed when the status changes. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
 
-| `checkout` | `false` (default) | no FORMS shop and no cart; the header cart stays hidden |
-| | `true` | with `beta` false: the FORMS shop under `/forms/` and the cart in the header (WP-S8) |
+| `checkout` | `false` (default) | no cart and no App checkout; the header cart stays hidden |
+| | `true` | with `beta` false: the FORMS cart in the header and Add to cart on the shop (WP-S8); App checkouts as `app_status` allows |
 
 ## FORMS shop and cart (WP-S8)
 
 The storefront's own page builders, shared byte for byte: `scripts/lib/shop.mjs` (trade, builder, management systems, specialist, consultant packs, single documents, subscriptions, how ordering works, questions), `scripts/lib/cart.mjs` (cart and order pages) and `scripts/lib/cart-browser.js` (the browser cart, wrapped into `/assets/cart.js`). Keep them identical with SiteGuard-Forms-Storefront.
 
 - Rendered from `data/catalogue.json` under `/forms/`. Every shop page has its canonical tag on siteguardforms.com.au, and none is in this sitemap.
-- One cart for everything (Dan's Q1 default). `/cart/` posts to the storefront's checkout engine (`CHECKOUT_ENGINE`, default `https://www.siteguardforms.com.au`) with `returnOrigin` and `source_site: "systems"`; the engine re-prices every line from the catalogue. Stripe sends the buyer back to `/order/success/` or `/order/cancelled/` here.
+- **Two kinds of checkout (Q1 narrowed by Dan 1 Nov, #96):** everything is sold on one site, with two kinds of checkout. The cart is for FORMS documents and packs (one-off purchases) only. App and Audit "Subscribe" and "Reserve a founding place" each go straight to their own Stripe checkout, never via the cart, each with its own terms to tick (founding: the 20-place limit; the app: account setup). The build fails if any page has an Add to cart button for an `app:` or founding item, and the engine's `/api/checkout` refuses such a line with a reason.
+- `/cart/` posts to the storefront's checkout engine (`CHECKOUT_ENGINE`, default `https://www.siteguardforms.com.au`) with `returnOrigin` and `source_site: "systems"`; the engine re-prices every line from the catalogue. Stripe sends the buyer back to `/order/success/` or `/order/cancelled/` here.
 - Preview a build with the shop on: `node build.mjs --beta=false --checkout=true`.
 
 ## SiteGuard App checkout (WP-S9 / WP-S10)

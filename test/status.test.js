@@ -3,6 +3,7 @@
 // and checks what each shows.
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -83,11 +84,14 @@ test("live: no pre-launch wording, no Register interest", () => {
   assert.ok(pages.has("app/pricing/index.html") && !pages.has("app/founding-offer/index.html"));
 });
 
-test("FORMS out of beta: a link to the FORMS site, never the coming-soon label", () => {
+test("FORMS out of beta (checkout off): a link to the FORMS site; in beta: the browse-only shop here, marked beta", () => {
   const { pages } = builds.formsOpen;
-  for (const [f, html] of pages) assert.ok(!/SiteGuard FORMS(:| \() ?coming soon/.test(html), f);
+  for (const [f, html] of pages) assert.ok(!/SiteGuard FORMS(:| \() ?(coming soon|beta)/.test(html), f);
   assert.match(pages.get("index.html"), /<nav[\s\S]*<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS<\/a>[\s\S]*<\/nav>/);
-  assert.match(builds.coming_soon.pages.get("index.html"), /<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon<\/span>/);
+  assert.ok(!pages.has("forms/index.html"));
+  const beta = builds.coming_soon.pages;
+  assert.match(beta.get("index.html"), /<nav[\s\S]*<a href="\/forms\/">SiteGuard FORMS \(beta\)<\/a>[\s\S]*<\/nav>/);
+  for (const [f, html] of beta) assert.ok(!/SiteGuard FORMS(:| \() ?coming soon/.test(html), f);
 });
 
 test("banned words: coming soon and launching only inside data-status-copy, or the FORMS label in beta", () => {
@@ -119,6 +123,16 @@ test("the build refuses pre-launch wording once live, and the FORMS label once F
 test("site-mode.json: this repo's file is valid; bad values are reported", async () => {
   const ok = await loadSiteMode(ROOT);
   assert.deepEqual(ok.problems, []);
+  // Dan, 1 Nov 2026 (#94): one beta switch, the storefront's, vendored and pinned.
+  const own = JSON.parse(await readFile(path.join(ROOT, "data/site-mode.json"), "utf8"));
+  assert.ok(!("beta" in own), "data/site-mode.json must not set beta");
+  const lock = JSON.parse(await readFile(path.join(ROOT, "site-mode.lock"), "utf8"));
+  assert.equal(lock.repo, "SiteGuardSystems/SiteGuard-Forms-Storefront");
+  assert.equal(lock.path, "data/site-mode.json");
+  const vendored = await readFile(path.join(ROOT, lock.vendored_at));
+  assert.equal(createHash("sha256").update(vendored).digest("hex"), lock.sha256);
+  assert.equal(ok.mode.beta, JSON.parse(vendored.toString("utf8")).beta);
+  assert.equal(ok.mode.beta, lock.beta);
   assert.ok(["coming_soon", "presale", "live"].includes(ok.mode.app_status));
   const bad = await loadSiteMode(ROOT, { app_status: "soon", beta: "yes" });
   assert.equal(bad.problems.length, 2);

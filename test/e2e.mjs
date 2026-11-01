@@ -96,6 +96,17 @@ try {
   assert.equal(posted.consent_wording, "");
   assert.deepEqual(errors, []);
 
+  // ---- Dan, 1 Nov 2026 (#94): FORMS in beta (the default build): the shop is
+  // browsable here, the single-documents list loads, and nothing can be bought.
+  await page.goto(base + "/forms/documents/");
+  await page.locator("[data-doc-table] tbody tr").first().waitFor();
+  assert.equal(await page.locator("[data-add-doc]:visible, [data-add-pack]:visible").count(), 0, "no Add buttons in beta");
+  assert.ok(await page.locator("[data-beta-notice]").isVisible(), "beta notice on the shop");
+  assert.ok(!(await page.locator("#site-nav [data-cart]").isVisible()), "no cart in beta");
+  await page.goto(base + "/forms/builder-packs/");
+  assert.equal(await page.locator("[data-add-pack], [data-add-doc]").count(), 0, "no buy buttons on the pack pages in beta");
+  assert.deepEqual(errors, []);
+
   // ---- WP-S12: the FORMS shop and one cart, checkout to the (mocked) engine ----
   const cat = JSON.parse(await readFile(path.join(ROOT, "data/catalogue.json"), "utf8"));
   const pack = cat.packs.find((p) => p.show && p.prices?.one_off && p.purchasable && p.group === "builder-packs");

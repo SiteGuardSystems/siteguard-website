@@ -94,6 +94,9 @@ p, ul, ol { margin: 0 0 1em; }
 .btn-hivis:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
 .btn-small { padding: 0.55rem 0.85rem; font-size: 1rem; }
 .btn[disabled], .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+/* FORMS in beta (Dan, 1 Nov 2026): the shop is browse only; the buttons the
+   single-documents script draws never show. */
+body[data-browse-only] [data-add-pack], body[data-browse-only] [data-add-doc] { display: none !important; }
 .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 
 /* Sections */
