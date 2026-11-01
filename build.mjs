@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 import { esc, frontMatter, render, plain, PLACEHOLDER_RE } from "./scripts/lib/md.mjs";
 import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/lib/trust.mjs";
 import { loadVideo, introVideo, videoJsonLd, withVideoCsp, withCspSources } from "./scripts/lib/video.mjs";
-import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, educationJsonLd } from "./scripts/lib/education.mjs";
+import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, educationJsonLd, relatedVideos as relatedVideosBand } from "./scripts/lib/education.mjs";
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
 import { loadSiteMode, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages } from "./scripts/lib/app-pages.mjs";
@@ -96,7 +96,7 @@ function buyButton(interest, { cls = "btn btn-hivis" } = {}) {
 }
 
 /** "Related videos" band on a module page (WP-S6 fills it from data/education.json). */
-const relatedVideos = () => "";
+const relatedVideos = (module) => relatedVideosBand(EDU, module);
 
 const HOME_DOORS = () => [
   ["/consulting/", "Consulting", "Senior HSEQ consulting: from one SWMS to an ISO-aligned integrated management system, audits and inspections, and monthly retainers."],
@@ -380,13 +380,20 @@ ${seriesBody(EDU, g.slug)}`,
   <p class="lede">We set up inspection registers, schedules and reminders that fit your sites and your plant.</p>
   <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Send an enquiry</a></div>
 </div></section>`;
+    // Status-aware cross-links: planner -> SiteGuard Audit, state calendars -> SiteGuard App.
+    const cross = (href, name, text) => `<section class="band band-grey plan-cross"><div class="wrap cols">
+  <div><h2><a href="${href}">${name}</a></h2><p>${text}</p>${appWhen({ cls: "status-line" })}</div>
+  <div class="btn-row"><a class="btn" href="${href}">See ${name}</a></div>
+</div></section>`;
+    const XAUDIT = cross("/audit/", "SiteGuard Audit", "Run these inspections in SiteGuard Audit: the checklist on site, photos, findings and corrective actions, and schedules and reminders so nothing falls due unseen.");
+    const XAPP = cross("/app/", "SiteGuard App", "Plan your sites in the SiteGuard App: projects, workforce and tickets, inspections and registers in one place, with your documents kept current.");
     const T = [["/planning/", "Planning calendar"]];
     page({
       url: "/planning/", title: "Planning calendar: holidays, RDOs and the safety calendar", trail: T,
       description: "Public holidays and building industry RDOs for every state, national safety initiatives and industry events, and an inspection and testing planner.",
       body: `${head(T, "Planning calendar", "Plan the year around public holidays, building industry RDOs and the safety calendar, and keep inspections and testing on schedule.")}
 ${planningIndexBody(PLANNING)}
-${CTA}`,
+${XAUDIT}${CTA}`,
     });
     for (const st of STATES) {
       const tr = [...T, [statePath(st), STATE_NAMES[st]]];
@@ -395,7 +402,7 @@ ${CTA}`,
         description: `${STATE_NAMES[st]} public holidays and building and construction industry RDO dates, with national safety initiatives and industry events. Add them to your calendar.`,
         body: `${head(tr, `${STATE_NAMES[st]} planning calendar`, `Public holidays, building industry rostered days off, safety initiatives and industry events for ${STATE_NAMES[st]}.`)}
 ${planningStateBody(PLANNING, st)}
-${CTA}`,
+${XAPP}${CTA}`,
       });
     }
     const ti = [...T, ["/planning/inspections/", "Inspection and testing planner"]];
@@ -404,7 +411,7 @@ ${CTA}`,
       description: "How often workplace equipment and systems are inspected and tested in Australia, with the Act, regulation, standard or code of practice behind each interval.",
       body: `${head(ti, "Inspection and testing planner", "How often common workplace items are inspected or tested, and whether that comes from the law, an Australian Standard, a code of practice or good practice.")}
 ${inspectionsIndexBody(PLANNING)}
-${CTA}`,
+${XAUDIT}${CTA}`,
     });
     for (const g of inspectionGroups(PLANNING.insp)) {
       const tg = [...ti, [groupPath(g.slug), g.title]];
@@ -413,7 +420,7 @@ ${CTA}`,
         description: `How often ${g.title.toLowerCase()} items are inspected and tested in Australia, with the regulation, standard or code of practice behind each interval and the Victorian differences.`,
         body: `${head(tg, `${g.title}: inspection and testing`, "")}
 ${inspectionGroupBody(PLANNING, g.slug)}
-${CTA}`,
+${XAUDIT}${CTA}`,
       });
     }
   }
