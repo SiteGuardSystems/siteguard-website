@@ -15,7 +15,7 @@ const server = createServer(async (req, res) => {
   if (p.endsWith("/")) p += "index.html";
   try {
     const body = await readFile(path.join(DIST, p));
-    const type = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".png": "image/png", ".woff2": "font/woff2" }[path.extname(p)] ?? "application/octet-stream";
+    const type = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2" }[path.extname(p)] ?? "application/octet-stream";
     res.writeHead(200, { "Content-Type": type }); res.end(body);
   } catch { res.writeHead(404); res.end(await readFile(path.join(DIST, "404.html"))); }
 });
@@ -45,6 +45,13 @@ try {
   assert.ok(await wide.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop header fits");
   await wide.close();
 
+  // Module marks (assets/brand/*.svg) load and draw, on cards and page heads.
+  for (const p of ["/app/", "/app/safety/", "/audit/", "/education/", "/consulting/"]) {
+    await page.goto(base + p);
+    const marks = await page.$$eval(".mod-label img, .mod-lockup img", (imgs) => imgs.map((i) => [i.getAttribute("src"), i.complete && i.naturalWidth > 0]));
+    assert.ok(marks.length > 0, `${p}: no module marks`);
+    for (const [src, ok] of marks) assert.ok(ok, `${p}: ${src} did not load`);
+  }
   let posted;
   await page.route("**/api/lead", async (route) => { posted = JSON.parse(route.request().postData()); await route.fulfill({ json: { ok: true } }); });
   await page.goto(base + "/contact/");

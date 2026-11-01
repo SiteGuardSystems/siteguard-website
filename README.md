@@ -98,10 +98,19 @@ enquiry form in a real browser. Both run in CI.
 
 ## SiteGuard App pages (`scripts/lib/app-pages.mjs`)
 
-`/app/`, `/app/trade-packages/` and a page per trade, `/app/builder-bundles/`, and a page per module (`/app/safety/`, `/quality/`, `/environmental/`, `/management/`) with its lockup from the Brand Suite Rev06 (`assets/brand/`). `/app/pricing/` is built once `app_status` is `presale` or `live`; `/app/founding-offer/` only while `presale`.
+`/app/`, `/app/trade-packages/` and a page per trade, `/app/builder-bundles/`, and a page per module (`/app/safety/`, `/quality/`, `/environmental/`, `/management/`) with its lockup from the Brand Suite Rev06 (`assets/brand/`, see Module colour identity). `/app/pricing/` is built once `app_status` is `presale` or `live`; `/app/founding-offer/` only while `presale`.
 
 The data is `data/app-packages.json`, **interim**: generated from the Packages and Pricing workbook (tabs Trade Packages, Trade Package Schedule, Trade Package Contents, App Bundles, Levers) by `python scripts/gen-app-packages.py <workbook.xlsx>`. It carries document titles and counts, never document codes, competitor names, costs or margins. Only issued masters are listed. Once the app products are in packages.py / catalogue.json as group `"app"`, read them from there and retire the generator.
 
 ## SiteGuard Audit pages (`scripts/lib/audit-pages.mjs`)
 
 `/audit/` and `/audit/checklists/`. Checklist counts come from `data/audit-checklists.json`, generated from SG_AUDIT_CHECKLIST_BUILD_LIST_Rev02 (siteguard-audit `packages/templates/BUILD_LIST.csv`) by `python scripts/gen-audit-checklists.py <BUILD_LIST.csv>`. Only counts by type, area and wave are copied (the list carries internal document codes and stays in the private repo). The seat price and AI photo-check allowance come from `data/app-packages.json`.
+
+## Module colour identity (`scripts/lib/modules.mjs`)
+
+Each module (Safety, Quality, Environmental, Management, Forms, Audit, Consulting, Education) has a colour from the Brand Suite Rev06 palette and two marks in `assets/brand/`: `sg-<module>-label.svg` (single-line label, on cards) and `sg-<module>-lockup.svg` (full lockup, in page heads). The SVGs are the Rev06 masters unchanged: `SG_<MODULE>_LABEL.svg` and `SG_<MODULE>_LOCKUP.svg` from Hseq-Dev `docs/brand/rev06/SiteGuard_<Module>_Brand_Set_Rev06.zip`. No Robotics or Core marks (reserved / gated).
+
+- Tokens are in `assets/site.css` under `[data-module="<module>"]`: `--mod` (brand colour), `--mod-tint` (8% on white), `--mod-line` (30% on white), `--mod-ink` (darkened only as far as 4.5:1 on the tint and on white needs) and `--mod-on` (text on a `--mod` button). A card or a page's `<main>` takes them through `data-module`; never inline style (the CSP forbids it).
+- Module pages and the Audit, Education and Consulting tab pages: `page({ module })` and `head(trail, h1, lede, module)`.
+- `test/modules.test.js` computes the WCAG ratios from the CSS values and fails under 4.5:1; it also checks every module page's `data-module` and lockup.
+- Screenshots for a PR: `npm run build && npm run screenshots` (dev only; `CHROMIUM_PATH` for a local Chromium) writes `docs/screenshots/module-colour/`.

@@ -8,7 +8,8 @@
     "build:production": "node build.mjs --production",
     "sync-legal": "node scripts/sync-legal.mjs",
     "test": "node build.mjs && node --test test/*.test.js",
-    "test:e2e": "node test/e2e.mjs"
+    "test:e2e": "node test/e2e.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "engines": { "node": ">=20.11 <25" },
   "devDependencies": { "playwright": "1.56.1" }

@@ -32,12 +32,11 @@ export function auditPages(cl, ctx) {
   const prices = showAppPrices(mode) && seat.seat_month;
   const out = [];
   out.push({
-    url: "/audit/", title: "SiteGuard Audit: audits and inspections for consultants and businesses", trail: T,
+    url: "/audit/", title: "SiteGuard Audit: audits and inspections for consultants and businesses", trail: T, module: "audit",
     description: "SiteGuard Audit: run audits and inspections on site, with photos, findings, corrective actions and the report. Unlimited clients and audits for each auditor.",
-    body: `${head(T, "SiteGuard Audit", "Audits and inspections for consultants and businesses: run the checklist on site, take photos, record findings and corrective actions, and issue the report.")}
+    body: `${head(T, "SiteGuard Audit", "Audits and inspections for consultants and businesses: run the checklist on site, take photos, record findings and corrective actions, and issue the report.", "audit")}
 <section class="band"><div class="wrap cols">
-  <div><p class="lockup"><img src="/assets/brand/sg-audit-lockup.png" alt="SiteGuard Audit" width="171" height="60"></p>
-    <h2>What it does</h2><ul>
+  <div><h2>What it does</h2><ul>
     <li>Run the checklist on a phone or tablet, on site, with or without a signal</li>
     <li>Photos on every item; AI photo checks suggest hazards, and the auditor decides</li>
     <li>Findings and corrective actions go into a register for each client and project, and are followed through to close-out</li>
@@ -67,9 +66,9 @@ ${related("audit")}
   const TCk = [...T, ["/audit/checklists/", "Checklist library"]];
   const table = (title, obj, col) => `<div><h2>${title}</h2><table class="doc-table"><thead><tr><th scope="col">${col}</th><th scope="col">Checklists</th></tr></thead><tbody>${Object.entries(obj).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${n(v)}</td></tr>`).join("")}</tbody></table></div>`;
   out.push({
-    url: "/audit/checklists/", title: "SiteGuard Audit checklist library", trail: TCk,
+    url: "/audit/checklists/", title: "SiteGuard Audit checklist library", trail: TCk, module: "audit",
     description: `The SiteGuard Audit checklist library: ${n(cl.checklists)} checklists, including a check for every SWMS and ITP in SiteGuard's controlled library.`,
-    body: `${head(TCk, "Checklist library", `${n(cl.checklists)} checklists, built from SiteGuard's controlled forms.`)}
+    body: `${head(TCk, "Checklist library", `${n(cl.checklists)} checklists, built from SiteGuard's controlled forms.`, "audit")}
 <section class="band"><div class="wrap">
   ${when({ cls: "note status-line" })}
   <div class="cols">${table("By type", cl.by_type, "Type")}${table("By area", cl.by_area, "Area")}</div>
