@@ -15,7 +15,7 @@ test("the catalogue carries the FORMS groups and the app products", () => {
   const groups = new Set(cat.packs.map((p) => p.group));
   for (const g of ["trade-packs", "builder-packs", "management-systems", "specialist-packs", "app"]) assert.ok(groups.has(g), g);
   const ids = cat.packs.filter((p) => p.group === "app").map((p) => p.id).sort();
-  assert.deepEqual(ids, ["app:audit:seat", "app:bundle:domestic", "app:bundle:heavy-commercial", "app:bundle:light-commercial",
+  assert.deepEqual(ids, ["app:audit:seat", "app:builder:domestic", "app:builder:heavy-commercial", "app:builder:light-commercial",
     "app:trade:domestic", "app:trade:heavy-commercial", "app:trade:light-commercial"]);
   for (const p of cat.packs.filter((x) => x.group === "app")) {
     assert.equal(p.prices, null, `${p.id}: no FORMS price`);

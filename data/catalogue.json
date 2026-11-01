@@ -18318,7 +18318,7 @@
    "level": "heavy-commercial"
   },
   {
-   "id": "app:bundle:domestic",
+   "id": "app:builder:domestic",
    "group": "app",
    "kind": "builder-bundle",
    "sort": 20,
@@ -18361,7 +18361,7 @@
    "level": "domestic"
   },
   {
-   "id": "app:bundle:light-commercial",
+   "id": "app:builder:light-commercial",
    "group": "app",
    "kind": "builder-bundle",
    "sort": 21,
@@ -18406,7 +18406,7 @@
    "level": "light-commercial"
   },
   {
-   "id": "app:bundle:heavy-commercial",
+   "id": "app:builder:heavy-commercial",
    "group": "app",
    "kind": "builder-bundle",
    "sort": 22,

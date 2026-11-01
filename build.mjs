@@ -145,7 +145,7 @@ export function appPriceDrift(app, cat) {
   const byId = new Map((cat.packs ?? []).filter((p) => p.group === "app").map((p) => [p.id, p]));
   const want = [
     ...(app?.levels ?? []).map((l) => [`app:trade:${l.slug}`, l.price_month]),
-    ...(app?.bundles ?? []).map((b) => [`app:bundle:${b.slug.replace(/^builder-/, "")}`, b.price_month]),
+    ...(app?.bundles ?? []).map((b) => [`app:builder:${b.slug.replace(/^builder-/, "")}`, b.price_month]),
     ...(app?.audit ? [["app:audit:seat", app.audit.seat_month]] : []),
   ];
   for (const [id, price] of want) {
