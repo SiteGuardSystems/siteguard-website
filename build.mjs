@@ -46,7 +46,10 @@ const FORMS = (process.env.FORMS_URL ?? "https://www.siteguardforms.com.au").rep
 const LEAD_ENDPOINT = process.env.LEAD_ENDPOINT ?? `${FORMS}/api/lead`;
 const EMAIL = "hello@siteguardsystems.com.au";
 const LINKEDIN = "https://www.linkedin.com/in/silverdaniel";
-const CREDENTIAL = "Exemplar Global Certified Lead Auditor — Integrated Management Systems (ISO 9001, 14001, 45001)";
+// Rebaseline 31 Oct 2026: the Certificate of Attainment wording. Never
+// "Exemplar Global Certified Lead Auditor". This exact line is the only place
+// "certified" may appear on the site (it describes the courses, not SiteGuard).
+export const CREDENTIAL = "Certificates of Attainment for the Exemplar Global certified courses (AU, TL, QM, EM, OH 45001) via Risk Training Professionals";
 
 // Banned wording, checked on every built page except the legal pages.
 // "coming soon" and "launching" are allowed only inside elements marked
@@ -90,7 +93,7 @@ function buyButton(interest, { cls = "btn btn-hivis" } = {}) {
 }
 
 const HOME_DOORS = () => [
-  ["/services/", "Consulting", "Senior HSEQ consulting, from one SWMS to an ISO-aligned integrated management system, scoped and quoted to the work."],
+  ["/consulting/", "Consulting", "Senior HSEQ consulting: from one SWMS to an ISO-aligned integrated management system, audits and inspections, and monthly retainers."],
   ["/app/", "SiteGuard App", "Safety, quality, environmental and management modules for trades and builders, with the documents for your work included and kept current.", appWhen()],
   ["/audit/", "SiteGuard Audit", "Audits and inspections for consultants and businesses: checklists, photos, findings, corrective actions and the report.", appWhen()],
   ["/education/", "Education", "Short videos for toolbox talks, inductions and how-tos, free to watch and share with your crews."],
@@ -105,14 +108,16 @@ const money = (n) => "$" + Number(n).toLocaleString("en-AU");
 // · Forms, then Contact, the cart (hidden until checkout exists) and the
 // status button. A tab is current on its own pages and on the pages it lists.
 const NAV = [
-  ["/services/", "Consulting", ["/services/", "/about/", "/library/"]],
+  ["/consulting/", "Consulting", ["/consulting/", "/about/", "/library/"]],
   ["/app/", "SiteGuard App"], ["/audit/", "SiteGuard Audit"],
   ["/education/", "Education"], ["/planning/", "Planner"],
 ];
 // Cloudflare Pages _redirects, all 301. Every target must be a built page.
 export const REDIRECTS = [
   ["/index.html", "/"],
-  ...["services", "library", "about", "contact", "partners", "planning", "education", "app", "audit"].map((p) => [`/${p}`, `/${p}/`]),
+  ...["consulting", "library", "about", "contact", "partners", "planning", "education", "app", "audit"].map((p) => [`/${p}`, `/${p}/`]),
+  // Consulting moved from /services/ (WP-S3).
+  ["/services", "/consulting/"], ["/services/", "/consulting/"], ["/services/*", "/consulting/:splat"],
   ["/planner", "/planning/"], ["/planner/", "/planning/"], ["/planner/*", "/planning/:splat"],
 ];
 // Checkout (WP-S8 onwards) shows the cart; until then it stays hidden.
@@ -145,8 +150,7 @@ function footer() {
   <div class="footer-grid">
     <div><h2>SiteGuard Systems</h2><p>HSEQ consulting, the SiteGuard App and SiteGuard Audit for Australian construction. Melbourne, Victoria; working Australia-wide.</p></div>
     <div><h2>Consulting</h2><ul>
-      <li><a href="/services/subcontractors/">Subcontractors</a></li><li><a href="/services/builders/">Builders</a></li>
-      <li><a href="/services/iso-ims/">ISO and IMS</a></li><li><a href="/services/leadership-advisory/">Leadership and risk advisory</a></li>
+      ${Object.entries(SERVICES).map(([slug, s]) => `<li><a href="/consulting/${slug}/">${esc(s.nav)}</a></li>`).join("")}
       <li><a href="/library/">Document library</a></li><li><a href="/about/">About Daniel Silver</a></li></ul></div>
     <div><h2>Products and tools</h2><ul><li><a href="/app/">SiteGuard App</a></li><li><a href="/audit/">SiteGuard Audit</a></li><li><a href="/education/">SiteGuard Education</a></li><li><a href="/planning/">Planner</a></li></ul></div>
     <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li>${MODE.app_status === "live" ? "" : `<li><a href="/register-interest/">Register interest</a></li>`}<li><a href="/partners/">Partners and referrals</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
@@ -219,35 +223,60 @@ function leadForm() {
 </form>`;
 }
 
+// Consulting services: /consulting/<slug>/. "nav" is the footer label.
 const SERVICES = {
   subcontractors: {
-    title: "Subcontractors and small builders", short: "Site documentation and safety support",
+    nav: "Subcontractors", title: "Subcontractors and small builders", short: "Site documentation and safety support",
     lede: "Practical, well-structured documentation for growing subcontractors and small builders, from a single SWMS to a full trade pack, without a complex engagement.",
     items: ["A single SWMS, scoped to your work, written and controlled", "Trade document packs for every major trade", "Site safety forms and induction records",
       "Safety walks and site inspections", "Toolbox talks and pre-start meeting records", "HSEQ coordination and administration"],
     note: () => `Standard trade packs ${formsWill()} ${formsName()}. For anything else, we can prepare the documents you need. <a href="/contact/">Contact us</a>.`,
   },
   builders: {
-    title: "Builders and growing businesses", short: "Safety systems, audit support and incident investigation",
+    nav: "Builders", title: "Builders and growing businesses", short: "Safety systems, audit support and incident investigation",
     lede: "For builders and contractors scaling up: documented safety systems, audit readiness and structured HSEQ guidance that supports prequalification and principal contractor requirements.",
     items: ["Safety management system design and build", "Subcontractor management system", "Internal and external audit preparation",
       "Evidence collation and gap closure", "Non-conformance response and corrective action tracking", "Incident investigation and return to work coordination"],
   },
+  "audits-and-inspections": {
+    nav: "Audits and inspections", title: "Audits and inspections", short: "Site inspections, internal audits and gap reviews, with a findings register",
+    lede: "Independent site inspections, internal management-system audits and pre-audit gap reviews, reported with clear findings and corrective actions your team can close out.",
+    items: ["Site safety, quality and environmental inspections", "Internal audits against ISO 45001, ISO 9001 and ISO 14001, or an integrated management system",
+      "Pre-audit gap reviews before a client, principal contractor or certification audit", "Subcontractor and supplier audits",
+      "Findings and corrective actions in a register, followed through to close-out", "A written report for every audit or inspection"],
+    note: () => `Running audits and inspections yourself? See <a href="/audit/">SiteGuard Audit</a>.${MODE.app_status === "live" ? "" : " " + statusCopy("Opens June 2027.")}`,
+  },
   "iso-ims": {
-    title: "ISO and integrated management systems", short: "ISO 45001, 9001 and 14001, IMS and ISO 45003",
+    nav: "ISO and IMS", title: "ISO and integrated management systems", short: "ISO 45001, 9001 and 14001, IMS and ISO 45003",
     lede: "Structured support for organisations working towards ISO, from gap analysis and system design to evidence preparation and audit readiness support. Standalone standards or one integrated framework.",
     items: ["ISO 45001, ISO 9001 and ISO 14001 implementation support", "Integrated management system (IMS) design: one policy structure, one risk register, one internal audit cycle",
       "ISO 45003 psychosocial hazard management frameworks", "Gap analysis and improvement roadmap", "Certification audit readiness support"],
     note: "SiteGuard designs and builds the framework; your organisation implements and maintains it. Certification is granted only by an accredited certification body.",
   },
+  "ims-tier-1-uplift": {
+    nav: "IMS and Tier 1 uplift", title: "IMS and Tier 1 uplift", short: "Lift your system to what Tier 1 builders ask of their contractors",
+    lede: "For subcontractors and builders moving onto Tier 1 and Tier 2 sites: we review your system against what those contractors ask for at prequalification, close the gaps and bring it together as one integrated management system.",
+    items: ["Gap review against Tier 1 contractor prequalification and site requirements", "Integrated management system: one policy set, one risk register, one internal audit cycle",
+      "Tier 1 safety documents: permits, emergency and health programs, contractor assurance", "Quality and environmental documents to match: ITPs, NCRs, environmental controls",
+      "Prequalification submission support", "An internal audit before your first Tier 1 audit"],
+    note: "Scoped and quoted after a first gap review. SiteGuard builds and uplifts the system; your business runs it and stays responsible for its duties on site.",
+  },
+  retainers: {
+    nav: "Monthly retainers", title: "Monthly HSEQ retainers", short: "Ongoing HSEQ support for A$1,200 a month +GST",
+    lede: "Ongoing HSEQ support from a senior practitioner for A$1,200 a month +GST: a set amount of help every month, without scoping and quoting each job.",
+    items: ["A$1,200 a month +GST", "What each month covers is agreed with you up front", "Document updates, reviews and questions as they come up",
+      "Site inspections and internal audits as part of the month's work", "Help with client, principal contractor and prequalification requests", "Work outside the agreed scope is quoted before it starts"],
+    note: "Ask us what a month would cover for your business.",
+  },
   "leadership-advisory": {
-    title: "Leadership and risk advisory", short: "Leadership Under Pressure and risk advisory",
+    nav: "Leadership and risk advisory", title: "Leadership and risk advisory", short: "Leadership Under Pressure and risk advisory",
     lede: "For leaders carrying real operational risk: mentoring and structured advisory on decision quality, communication discipline, psychosocial duty and the practical demands of leading high-stakes work.",
     items: ["1:1 mentoring: Leadership Under Pressure", "Leadership maturity workshops (half or full day)", "Psychosocial systems and consultation review",
       "Executive risk briefings", "Operational governance support"],
     note: "Leadership advisory is mentoring, not clinical assessment, therapy or coaching. Individual psychological assessment is referred to qualified professionals.",
   },
 };
+const TC = [["/consulting/", "Consulting"]];
 
 async function legal(file) {
   return frontMatter(await readFile(path.join(ROOT, "content/legal", file), "utf8"));
@@ -383,13 +412,16 @@ ${CTA}`,
   }
 
   page({
-    url: "/services/", title: "Services", trail: [["/services/", "Services"]],
-    description: "HSEQ consulting for subcontractors, builders, organisations working towards ISO, and leaders carrying operational risk.",
+    url: "/consulting/", title: "Consulting", trail: TC,
+    description: "HSEQ consulting for subcontractors, builders, organisations working towards ISO and Tier 1 work: audits and inspections, monthly retainers and leadership advisory.",
     jsonld: Object.entries(SERVICES).map(([slug, s]) => ({ "@context": "https://schema.org", "@type": "Service", name: s.title,
-      description: s.lede, provider: { "@type": "ProfessionalService", name: "SiteGuard Systems", url: ORIGIN }, areaServed: "AU", url: `${ORIGIN}/services/${slug}/` })),
-    body: `${head([["/services/", "Services"]], "Services", "One SWMS or a full ISO framework. Senior practitioner guidance at every level, scoped and quoted to the work.")}
+      description: s.lede, provider: { "@type": "ProfessionalService", name: "SiteGuard Systems", url: ORIGIN }, areaServed: "AU", url: `${ORIGIN}/consulting/${slug}/` })),
+    body: `${head(TC, "Consulting", "One SWMS, a monthly retainer or a full ISO framework. Senior practitioner guidance at every level, scoped and quoted to the work.")}
 <section class="band"><div class="wrap"><div class="register">${Object.entries(SERVICES).map(([slug, s]) =>
-  `<div class="register-row"><div><h3><a href="/services/${slug}/">${esc(s.title)}</a></h3><p>${esc(s.lede)}</p></div><span></span><a class="btn btn-small" href="/services/${slug}/">More</a></div>`).join("")}</div></div></section>
+  `<div class="register-row"><div><h3><a href="/consulting/${slug}/">${esc(s.title)}</a></h3><p>${esc(s.lede)}</p></div><span></span><a class="btn btn-small" href="/consulting/${slug}/">More</a></div>`).join("")}</div>
+  <h2 class="mt-lg">Also under Consulting</h2>
+  <div class="doors"><div class="door"><h3><a href="/about/">About Daniel Silver</a></h3><p>27 years in Australian construction, and the training behind the work.</p></div>
+  <div class="door"><h3><a href="/library/">Document library</a></h3><p>The controlled documents behind every engagement, by trade and discipline.</p></div></div></div></section>
 <section class="band band-grey"><div class="wrap cols">
   <div><h2>How engagements work</h2><ul>
     <li>Every engagement is scoped and quoted before work starts: fixed scope or hourly, whichever suits the work.</li>
@@ -406,12 +438,12 @@ ${CTA}`,
   });
 
   for (const [slug, s] of Object.entries(SERVICES)) {
-    const url = `/services/${slug}/`;
+    const url = `/consulting/${slug}/`;
     page({
-      url, title: s.title, trail: [["/services/", "Services"], [url, s.title]], description: s.lede,
+      url, title: s.title, trail: [...TC, [url, s.title]], description: s.lede,
       jsonld: [{ "@context": "https://schema.org", "@type": "Service", name: s.title, description: s.lede,
         provider: { "@type": "ProfessionalService", name: "SiteGuard Systems", url: ORIGIN }, areaServed: "AU" }],
-      body: `${head([["/services/", "Services"], [url, s.title]], esc(s.title), esc(s.lede))}
+      body: `${head([...TC, [url, s.title]], esc(s.title), esc(s.lede))}
 <section class="band"><div class="wrap cols">
   <div><h2>What we do</h2><ul>${s.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
   <div>${s.note ? `<div class="note"><p>${typeof s.note === "function" ? s.note() : s.note}</p></div>` : ""}<h2 class="mt">Start with a conversation</h2><p>Tell us about the work and what you need. We reply within one business day with next steps and, where it fits, a scoped quote.</p>${enquire()}</div>
@@ -422,9 +454,9 @@ ${CTA}`,
   const tc = facts.trade_counts ?? [];
   const fam = f.by_family;
   page({
-    url: "/library/", title: "Document library", trail: [["/library/", "Document library"]],
+    url: "/library/", title: "Document library", trail: [...TC, ["/library/", "Document library"]],
     description: `${f.documents_rounded} controlled HSEQ documents: ${f.swms} SWMS across ${f.trades} trade series, ITPs, plans, policies, forms and registers, reviewed every 6 months.`,
-    body: `${head([["/library/", "Document library"]], "Document library", `${esc(f.documents_rounded)} controlled, version-managed documents across every major trade and management-system discipline.`)}
+    body: `${head([...TC, ["/library/", "Document library"]], "Document library", `${esc(f.documents_rounded)} controlled, version-managed documents across every major trade and management-system discipline.`)}
 <section class="band"><div class="wrap">
   <dl class="title-block">${[["SWMS", fam.SWMS], ["Inspection and test plans", fam.ITP], ["Plans", fam.Plan], ["Policies", fam.Policy], ["Forms", fam.Form], ["Registers", fam.Register]]
     .filter(([, n]) => n).slice(0, 4).map(([l, n]) => `<div><dt>${l}</dt><dd>${n}</dd></div>`).join("")}</dl>
@@ -439,25 +471,27 @@ ${CTA}`,
       <li>Written to Australian WHS laws (the OHS Act 2004 in Victoria) and aligned to ISO 45001, ISO 9001 and ISO 14001.</li>
       <li>The whole library is reviewed against legislative change every 6 months.</li></ul>
       <h2 class="mt-lg">Buy or commission</h2>
-      <p>Standard documents ${formsWill()} ${formsName()}, bought outright or on subscription. Custom SWMS, project-specific plans and management systems are consulting work.</p>
+      <ul><li><strong>Buy standard documents:</strong> they ${formsWill()} ${formsName()}, bought outright or on subscription.</li>
+      <li><strong>Use them in the app:</strong> the documents for your trade or business come with a <a href="/app/">SiteGuard App</a> package, filled in with your details and pushed to you after each 6-monthly review. ${appWhen({ tag: "span" })}</li>
+      <li><strong>Commission:</strong> custom SWMS, project-specific plans and management systems are <a href="/consulting/">consulting</a> work.</li></ul>
       <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Commission a document</a></div></div>
   </div>
 </div></section>`,
   });
 
   page({
-    url: "/about/", title: "About Daniel Silver", trail: [["/about/", "About"]],
+    url: "/about/", title: "About Daniel Silver", trail: [...TC, ["/about/", "About"]],
     description: "Daniel Silver: 27 years in Australian construction, from carpenter to senior site manager to HSEQ systems practitioner.",
     jsonld: [{ "@context": "https://schema.org", "@type": "Person", name: "Daniel Silver", jobTitle: "Founder and Principal HSEQ Consultant",
       worksFor: { "@type": "Organization", name: "SiteGuard Systems" }, hasCredential: CREDENTIAL, sameAs: [LINKEDIN] }],
-    body: `${head([["/about/", "About"]], "Daniel Silver", "Founder and principal HSEQ consultant, SiteGuard Systems.")}
+    body: `${head([...TC, ["/about/", "About"]], "Daniel Silver", "Founder and principal HSEQ consultant, SiteGuard Systems.")}
 <section class="band"><div class="wrap cols">
   <div class="prose">
     <p>Daniel has 27 years in the construction industry: he started as a carpenter, spent more than 16 years in senior site management, and moved into HSEQ systems management. He has worked with tier 1, tier 2 and tier 3 builders, large subcontractors, and civil and commercial projects up to $300 million.</p>
     <p>SiteGuard started from a simple observation: construction companies are often buried in paperwork but short on systems that hold up on site. Every document and service SiteGuard provides is built to solve a real operational problem.</p>
-    <h2>Credential</h2>
+    <h2>Credentials</h2>
     <p><strong>${esc(CREDENTIAL)}</strong></p>
-    <p class="small">A personal qualification. It does not mean SiteGuard's products are approved by any certification or standards body.</p>
+    <p class="small">Personal training certificates. They do not mean SiteGuard's products are approved by any certification or standards body.</p>
   </div>
   <div><h2>How Daniel engages</h2>
     <ul><li>Daniel personally leads and reviews every engagement.</li>

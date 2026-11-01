@@ -78,7 +78,7 @@ retired.
 ## Checks
 
 `npm test` builds and checks every page (links, titles, banned wording, page
-size, no inline script, the exact credential wording, the enquiry endpoint,
+size, no inline script, the exact credential wording (Certificates of Attainment, rebaseline 31 Oct 2026), the enquiry endpoint,
 the headers). `npm run test:e2e` checks the 360 px layout, the menu and the
 enquiry form in a real browser. Both run in CI.
 
