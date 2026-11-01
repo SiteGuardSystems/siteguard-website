@@ -9,7 +9,7 @@
 //                              page and the founding offer page show
 //                 live         the app modules are open; no pre-launch copy
 //
-// Pre-launch wording ("coming soon", "launching", "opens June 2027") lives only
+// Pre-launch wording ("Coming soon", "Launching <month year>") lives only
 // inside elements marked data-status-copy, so it can be found and must be gone
 // once app_status is "live" (checkStatusCopy).
 import { readFile } from "node:fs/promises";
@@ -41,6 +41,37 @@ export const showAppPrices = (mode) => mode.app_status !== "coming_soon";
 /** Wrap pre-launch wording so the build can find it (and refuse it once live). */
 export function statusCopy(html, { tag = "span", cls = "status-copy" } = {}) {
   return `<${tag} class="${cls}" data-status-copy>${html}</${tag}>`;
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** "2027-06" -> "June 2027" (null when the value isn't a YYYY-MM month). */
+export function monthYear(ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(ym ?? ""));
+  return m && +m[2] >= 1 && +m[2] <= 12 ? `${MONTHS[+m[2] - 1]} ${m[1]}` : null;
+}
+
+/**
+ * The one SiteGuard App / SiteGuard Audit status line, so every page reads the
+ * same wording. opens is the go-live month, launch.opens in
+ * data/app-packages.json ("2027-06"); it is never typed into copy.
+ *   coming_soon  "Coming soon. Register your interest now."   (no date)
+ *   presale      "Launching June 2027. Founding places are on sale now."
+ *   live         "" (no pre-launch wording)
+ * short: just "Coming soon." / "Launching June 2027.". Rendered with
+ * data-status-copy (statusCopy) so the build can find it.
+ */
+export function appStatusCopy(mode, opens, { tag = "p", cls = "status-line", short = false } = {}) {
+  if (mode.app_status === "live") return "";
+  let text;
+  if (mode.app_status === "presale") {
+    const when = monthYear(opens);
+    if (!when) throw new Error(`app status line: launch.opens must be a YYYY-MM month (got ${JSON.stringify(opens)})`);
+    text = `Launching ${when}.${short ? "" : " Founding places are on sale now."}`;
+  } else {
+    text = `Coming soon.${short ? "" : " Register your interest now."}`;
+  }
+  return statusCopy(text, { tag, cls });
 }
 
 const STATUS_EL = /<(\w+)\b[^>]*\bdata-status-copy\b[^>]*>[\s\S]*?<\/\1>/g;
