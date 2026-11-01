@@ -5,7 +5,6 @@
  "dcr_sha256": "8a8db29c7753ded334f8170bb20b1029fe94e414667e027bc10ffc0e0670a7af",
  "preview": false,
  "pricing_revision": "Rev06 -- 2026-10-31",
- "pricing_status": "Pricing Rev06 (31 Oct 2026; workbook marked DRAFT for Dan). Launch price list for FORMS (March 2027). Not published or live: Stripe test-mode re-provisioning and the FORMS/Storefront/website copy follow (rollout P2/P3).",
  "price_table": {
   "revision": "Rev06",
   "effective_from": "2027-03-01",
@@ -39,14 +38,10 @@
  "prices_exclude_gst": true,
  "monthly_premium": 1.15,
  "review_cycle": "6-monthly",
- "ofsc_held": true,
  "library_digest": "adc7bb7820b5ccd5",
  "release": {
   "library_codes": 841,
-  "released": 814,
-  "not_released_reasons": {
-   "held (OFSC, Rule 20)": 27
-  }
+  "released": 814
  },
  "facts": {
   "documents": 781,
@@ -18255,6 +18250,7 @@
      }
     },
     "founding_discount": 0.15,
+    "founding_prepay_cents": 199920,
     "base_month": 109,
     "per_project_month": 29,
     "reference_projects": 3
@@ -18321,6 +18317,7 @@
      }
     },
     "founding_discount": 0.15,
+    "founding_prepay_cents": 276420,
     "base_month": 154,
     "per_project_month": 39,
     "reference_projects": 3
@@ -18387,6 +18384,7 @@
      }
     },
     "founding_discount": 0.15,
+    "founding_prepay_cents": 505920,
     "base_month": 274,
     "per_project_month": 74,
     "reference_projects": 3
@@ -18456,6 +18454,7 @@
      }
     },
     "founding_discount": 0.15,
+    "founding_prepay_cents": 928200,
     "base_month": 290.7,
     "per_project_month": 77.35,
     "reference_projects": 8
@@ -18527,6 +18526,7 @@
      }
     },
     "founding_discount": 0.15,
+    "founding_prepay_cents": 1304580,
     "base_month": 652.8,
     "per_project_month": 208.8,
     "reference_projects": 3
@@ -18600,6 +18600,7 @@
      }
     },
     "founding_discount": 0.15,
+    "founding_prepay_cents": 1792140,
     "base_month": 712.8,
     "per_project_month": 208.8,
     "reference_projects": 5
@@ -18665,6 +18666,7 @@
      }
     },
     "founding_discount": 0.15,
+    "founding_prepay_cents": 76500,
     "per_seat": true,
     "ai_photo_checks_per_month": 1000,
     "trial_days": 14
@@ -26523,10 +26525,9 @@
    "price_lock_months": 12,
    "payment": "annual, up front",
    "delay": "one free month for each month of delay, or a refund of the unused prepayment on request",
-   "forms_pack_free_from": "2027-03",
-   "$comment": "Launch Line-up says 'a full refund of the unused prepayment'; the brief and SG-LEGAL-13 heads of terms say 'a refund of the unused prepayment' (parked for Dan). Wording is PENDING SOLICITOR (SG-LEGAL-13, questions 27-30)."
+   "forms_pack_free_from": "2027-03"
   },
-  "rounding": "Loaded per-month prices are whole dollars, ROUND(per month x (1 + loading), 0), as the workbook's cells (App Add-ons & Bands D: Builder Light Commercial 1317 / 1343 / 1381; AUDIT seat paid monthly 81). per_period = per_month x months; per_year = per_month x 12.",
+  "rounding": "Loaded per-month prices are whole dollars, ROUND(per month x (1 + loading), 0), as the workbook's cells (App Add-ons & Bands D: Builder Light Commercial 1317 / 1343 / 1381; AUDIT seat paid monthly 81). per_period = per_month x months; per_year = per_month x 12. Founding prepayment per unit (founding.prepay_cents) = the annual per_year x (1 - founding discount), to the cent: the workbook states the 15% rule, not a figure per product, and has no whole-dollar rule for it.",
   "source": "Hseq-Dev docs/pricing/app_price_table.json via docs/packages.py"
  }
 }
