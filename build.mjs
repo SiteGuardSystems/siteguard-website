@@ -23,8 +23,9 @@ import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/li
 import { loadVideo, introVideo, videoJsonLd, withVideoCsp, withCspSources } from "./scripts/lib/video.mjs";
 import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, educationJsonLd, relatedVideos as relatedVideosBand } from "./scripts/lib/education.mjs";
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
-import { loadSiteMode, shopOn, shopShown, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
+import { loadSiteMode, shopOn, shopShown, statusCopy, appStatusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages, appProductId } from "./scripts/lib/app-pages.mjs";
+import { loadSupportChat, supportChatWidget, supportChatConnect } from "./scripts/lib/support-chat.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
 // The FORMS shop and the cart (WP-S8): the same files as SiteGuard-Forms-Storefront.
@@ -50,6 +51,8 @@ let VIDEO = null;
 let PLANNING = { cal: null, insp: null };
 // SiteGuard Education hub (data/education.json; scripts/lib/education.mjs).
 let EDU = null;
+// Help chat (data/support-chat.json; scripts/lib/support-chat.mjs). P11.
+let CHAT = { base: "", endpoint: "" };
 const ORIGIN = (process.env.SITE_ORIGIN ?? "https://www.siteguardsystems.com.au").replace(/\/$/, "");
 const FORMS = (process.env.FORMS_URL ?? "https://www.siteguardforms.com.au").replace(/\/$/, "");
 const FORMS_APP = (process.env.FORMS_APP_URL ?? "https://app.siteguardforms.com.au").replace(/\/$/, "");
@@ -98,11 +101,12 @@ const formsName = () => (MODE.beta ? `<a href="/forms/">SiteGuard FORMS</a> <spa
 
 const formsWill = () => (MODE.beta ? "will be available on" : "are available on");
 
-/** Pre-launch line for the SiteGuard App and SiteGuard Audit (none once live). */
-function appWhen({ tag = "p", cls = "status-line" } = {}) {
-  if (MODE.app_status === "live") return "";
-  return statusCopy(MODE.app_status === "presale" ? "Opens June 2027. Founding places are on sale now." : "Opens June 2027. Register your interest now.", { tag, cls });
-}
+// The go-live month for the SiteGuard App and SiteGuard Audit: launch.opens
+// in data/app-packages.json. Loaded in build().
+let LAUNCH = {};
+
+/** Pre-launch line for the SiteGuard App and SiteGuard Audit (none once live; appStatusCopy in site-mode.mjs). */
+const appWhen = (opts = {}) => appStatusCopy(MODE, LAUNCH.opens, opts);
 
 /** The buy button for an app or audit product (interest: app or audit). */
 function buyButton(interest, { cls = "btn btn-hivis" } = {}) {
@@ -330,7 +334,8 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta prop
 <link rel="stylesheet" href="/assets/site.css">
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n")}
 <script src="/assets/site.js" defer></script>
-${/data-app-checkout|data-founding-cancel/.test(body) ? '<script src="/assets/app-checkout.js" defer></script>\n' : ""}${cartEnabled() || (browseOnly() && url.startsWith(SHOP_BASE + "/")) ? '<script src="/assets/cart.js" defer></script>\n' : ""}</head>
+${/data-app-checkout|data-founding-cancel/.test(body) ? '<script src="/assets/app-checkout.js" defer></script>\n' : ""}${cartEnabled() || (browseOnly() && url.startsWith(SHOP_BASE + "/")) ? '<script src="/assets/cart.js" defer></script>\n' : ""}<script src="/assets/support-chat.js" defer></script>
+</head>
 <body${preview ? ' data-preview="1"' : ""}${MODE.beta ? ' data-beta="1"' : ""}${browseOnly() ? ' data-browse-only="1"' : ""}>
 ${preview ? '<div class="preview-bar" role="note"><strong>Preview build.</strong> This shows every package for review, including packages not yet released for sale. Checkout is switched off.</div>\n' : ""}
 ${header(url)}
@@ -339,6 +344,7 @@ ${body}
 </main>
 ${strip ? partnerStrip(TRUST) : ""}
 ${footer()}
+${supportChatWidget(CHAT, EMAIL)}
 </body>
 </html>
 ` });
@@ -416,7 +422,7 @@ const SERVICES = {
     items: ["Site safety, quality and environmental inspections", "Internal audits against ISO 45001, ISO 9001 and ISO 14001, or an integrated management system",
       "Pre-audit gap reviews before a client, principal contractor or certification audit", "Subcontractor and supplier audits",
       "Findings and corrective actions in a register, followed through to close-out", "A written report for every audit or inspection"],
-    note: () => `Running audits and inspections yourself? See <a href="/audit/">SiteGuard Audit</a>.${MODE.app_status === "live" ? "" : " " + statusCopy("Opens June 2027.")}`,
+    note: () => `Running audits and inspections yourself? See <a href="/audit/">SiteGuard Audit</a>.${MODE.app_status === "live" ? "" : " " + appWhen({ tag: "span", cls: "status-copy", short: true })}`,
   },
   "iso-ims": {
     nav: "ISO and IMS", title: "ISO and integrated management systems", short: "ISO 45001, 9001 and 14001, IMS and ISO 45003",
@@ -463,7 +469,13 @@ async function build() {
   const sm = await loadSiteMode(ROOT, override);
   MODE = sm.mode;
   for (const p of sm.problems) problems.push(`data: ${p}`);
+  // SiteGuard App data first: its launch.opens is the go-live month every status line reads.
+  const ap = await loadAppPackages(ROOT);
+  for (const p of ap.problems) problems.push(`data: ${p}`);
+  LAUNCH = ap.app?.launch ?? {};
+  if (MODE.app_status === "presale" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(LAUNCH.opens ?? "")) problems.push("data: app-packages.json launch.opens (YYYY-MM) is needed while app_status is presale");
   TRUST = await loadTrust(ROOT, "systems", { sample: SAMPLE_PARTNERS });
+  CHAT = await loadSupportChat(ROOT);
   for (const p of TRUST.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
   if (SAMPLE_PARTNERS) problems.push(`data: built with SAMPLE partners and reviews (--sample-partners)${PRODUCTION ? "; a production build can't use sample data" : " (open item: preview only)"}`);
   const vid = await loadVideo(ROOT);
@@ -710,9 +722,7 @@ ${XAUDIT}${CTA}`,
 ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "SiteGuard" })}`,
   });
 
-  // SiteGuard App (scripts/lib/app-pages.mjs, data/app-packages.json).
-  const ap = await loadAppPackages(ROOT);
-  for (const p of ap.problems) problems.push(`data: ${p}`);
+  // SiteGuard App (scripts/lib/app-pages.mjs, data/app-packages.json; loaded above for LAUNCH).
   for (const p of appPriceDrift(ap.app, cat)) problems.push(`data: ${p}`);
   if (ap.app) {
     for (const spec of appPages(ap.app, { mode: MODE, head, buy: buyButton, when: appWhen, formsName, related: relatedVideos, foundingTerms: "/legal/founding-offer-terms/", appRow: (id) => cat.packs.find((p) => p.group === "app" && p.id === id) })) {
@@ -753,7 +763,7 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
 <section class="band"><div class="wrap cols">
   <div>${interestForm(ap.app)}</div>
   <div>${appWhen({ cls: "note status-line" })}<h2>What happens next</h2><ul>
-    <li>We'll tell you when founding places open (from March 2027) and when the app opens (June 2027).</li>
+    <li>We'll tell you when founding places open and when the app opens.</li>
 ${MODE.app_status === "presale" ? `    <li><a href="/app/founding-offer/">Founding places</a> are on sale now.</li>
 ` : ""}    <li>Questions now? <a href="/contact/">Send an enquiry</a>.</li></ul></div>
 </div></section>`,
@@ -856,11 +866,12 @@ async function main() {
   await writeFile(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.map((p) => `  <url><loc>${ORIGIN}${p.url}</loc></url>`).join("\n")}\n</urlset>\n`);
   await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\n${shopOn(MODE) ? "Disallow: /cart/\nDisallow: /order/\n" : ""}Sitemap: ${ORIGIN}/sitemap.xml\n`);
   // Cloudflare Pages headers and redirects.
+  // The lead form's origin, plus the help chat's API origin once it is set (P11).
   const connect = new URL(LEAD_ENDPOINT).origin;
   // WP-S12: while the shop is on, the cart may call the checkout engine
   // (connect-src) and the checkout hands over to Stripe Checkout (form-action).
   const engine = shopOn(MODE) || appCheckoutOn(MODE) ? new URL(CHECKOUT_ENGINE).origin : null;
-  const connectSrc = [...new Set(["'self'", connect, ...(engine ? [engine] : [])])].join(" ");
+  const connectSrc = [...new Set(["'self'", connect, ...supportChatConnect(CHAT), ...(engine ? [engine] : [])])].join(" ");
   const formAction = [...new Set(["'self'", connect, ...(engine ? [engine, STRIPE_CHECKOUT] : [])])].join(" ");
   await writeFile(path.join(DIST, "_headers"), `/*
   Content-Security-Policy: ${withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ${connectSrc}; form-action ${formAction}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU))}
