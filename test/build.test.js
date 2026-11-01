@@ -152,3 +152,15 @@ test("planner cross-links: planner and inspection pages to SiteGuard Audit, stat
   for (const f of ["planning/index.html", "planning/inspections/index.html"]) assert.match(get(f), /class="band band-grey plan-cross"[\s\S]*href="\/audit\/"/, f);
   for (const st of ["vic", "nsw", "qld", "sa", "wa", "tas", "act", "nt"]) assert.match(get(`planning/${st}/index.html`), /class="band band-grey plan-cross"[\s\S]*href="\/app\/"/, st);
 });
+
+test("Register interest: posts to /api/lead as app-interest with App / Audit / both and the consent wording", async () => {
+  const { CONSENT_WORDING } = await import("../build.mjs");
+  const html = get("register-interest/index.html");
+  assert.match(html, /data-endpoint="https:\/\/[^"]+\/api\/lead"/);
+  assert.match(html, /name="enquiry_type" value="app-interest"/);
+  for (const v of ["app", "audit", "both"]) assert.match(html, new RegExp(`name="interest" value="${v}"`));
+  assert.match(html, /<input type="checkbox" name="consent" value="yes">/);
+  assert.ok(html.includes(`name="consent_wording" value="${CONSENT_WORDING}"`));
+  assert.ok(html.includes(`<input type="checkbox" name="consent" value="yes">${CONSENT_WORDING}</label>`));
+  assert.match(html, /name="website"/); // honeypot
+});

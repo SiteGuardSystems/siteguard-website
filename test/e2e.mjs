@@ -55,6 +55,32 @@ try {
   await page.locator(".form-status.ok").waitFor();
   assert.equal(posted.source, "systems");
   assert.equal(posted.need, "ISO 45001 gap analysis");
+
+  // Register interest: ?interest=audit preselects Audit; consent recorded only when ticked.
+  posted = undefined;
+  await page.goto(base + "/register-interest/?interest=audit");
+  assert.ok(await page.locator('input[name="interest"][value="audit"]').isChecked());
+  await page.fill('input[name="name"]', "Test Person");
+  await page.fill('input[name="email"]', "delivered@resend.dev");
+  await page.selectOption('select[name="trade"]', "HSEQ consultant");
+  await page.check('input[name="consent"]');
+  await page.click('button[type="submit"]');
+  await page.locator(".form-status.ok").waitFor();
+  assert.equal(posted.enquiry_type, "app-interest");
+  assert.equal(posted.interest, "audit");
+  assert.equal(posted.trade, "HSEQ consultant");
+  assert.equal(posted.consent, "yes");
+  assert.match(posted.consent_wording, /^Email me about the SiteGuard App/);
+  assert.match(posted.consent_source, /\/register-interest\/$/);
+  posted = undefined;
+  await page.goto(base + "/register-interest/");
+  await page.fill('input[name="name"]', "Test Person");
+  await page.fill('input[name="email"]', "delivered@resend.dev");
+  await page.click('button[type="submit"]');
+  await page.locator(".form-status.ok").waitFor();
+  assert.equal(posted.interest, "both");
+  assert.equal(posted.consent, "");
+  assert.equal(posted.consent_wording, "");
   assert.deepEqual(errors, []);
   console.log("e2e: all checks passed");
 } finally { await browser.close(); server.close(); }

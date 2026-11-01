@@ -17,23 +17,39 @@
     ref = sessionStorage.getItem("sg_ref") || "";
   } catch (e) { ref = ""; }
   document.querySelectorAll("[data-ref-field]").forEach(function (i) { i.value = ref; });
+  // Register interest: ?interest=app|audit|both preselects the choice.
+  (function () {
+    var m = /[?&]interest=(app|audit|both)(?:&|$)/.exec(window.location.search);
+    var r = m && document.querySelector('input[name="interest"][value="' + m[1] + '"]');
+    if (r) r.checked = true;
+  })();
   function val(f, n) { return f[n] && typeof f[n].value === "string" ? f[n].value : ""; }
   document.querySelectorAll("[data-lead-form]").forEach(function (f) {
     f.addEventListener("submit", function (e) {
       e.preventDefault();
       var status = f.querySelector("[data-status]");
-      if (!f.name.value.trim() || !f.email.value.trim() || !f.need.value.trim()) {
-        status.className = "form-status err"; status.textContent = "Add your name, email and what you need."; return;
+      var needRequired = f.need && f.need.required;
+      if (!f.name.value.trim() || !f.email.value.trim() || (needRequired && !f.need.value.trim())) {
+        status.className = "form-status err"; status.textContent = needRequired ? "Add your name, email and what you need." : "Add your name and email."; return;
       }
-      var data = { source: "systems", name: f.name.value, email: f.email.value, company: f.company.value,
-        phone: f.phone.value, need: f.need.value, website: f.website.value,
+      var data = { source: "systems", name: f.name.value, email: f.email.value, company: val(f, "company"),
+        phone: val(f, "phone"), need: val(f, "need"), website: val(f, "website"),
         enquiry_type: val(f, "enquiry_type") || "enquiry", ref: ref,
         partner_url: val(f, "partner_url"), partner_kind: val(f, "partner_kind") };
+      // Register interest (enquiry_type app-interest): interest, trade and the consent basis.
+      if (data.enquiry_type === "app-interest") {
+        var picked = f.querySelector('input[name="interest"]:checked');
+        data.interest = picked ? picked.value : "both";
+        data.trade = val(f, "trade");
+        data.consent = f.consent && f.consent.checked ? "yes" : "";
+        data.consent_wording = data.consent ? val(f, "consent_wording") : "";
+        data.consent_source = val(f, "consent_source");
+      }
       status.className = "form-status"; status.textContent = "Sending…";
       fetch(f.getAttribute("data-endpoint"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
         .then(function (res) {
-          if (res.ok) { f.reset(); status.className = "form-status ok"; status.textContent = "Sent. We'll reply within one business day."; }
+          if (res.ok) { f.reset(); status.className = "form-status ok"; status.textContent = data.enquiry_type === "app-interest" ? "Thanks. You're registered, and we'll be in touch." : "Sent. We'll reply within one business day."; }
           else { status.className = "form-status err"; status.textContent = (res.body && res.body.reason) || "Your enquiry didn't send. Try again, or email hello@siteguardsystems.com.au."; }
         })
         .catch(function () { status.className = "form-status err"; status.textContent = "Your enquiry didn't send. Email hello@siteguardsystems.com.au instead."; });
