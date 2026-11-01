@@ -23,10 +23,13 @@ import { loadTrust, partnerStrip, reviewBadge, partnersBody } from "./scripts/li
 import { loadVideo, introVideo, videoJsonLd, withVideoCsp, withCspSources } from "./scripts/lib/video.mjs";
 import { loadEducation, educationBody, seriesBody, seriesPath, educationCsp, educationJsonLd, relatedVideos as relatedVideosBand } from "./scripts/lib/education.mjs";
 import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBody, inspectionGroupBody, inspectionGroups, groupPath, icsFor, STATES, STATE_NAMES, statePath } from "./scripts/lib/planning.mjs";
-import { loadSiteMode, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
+import { loadSiteMode, shopOn, statusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages } from "./scripts/lib/app-pages.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
+// The FORMS shop and the cart (WP-S8): the same files as SiteGuard-Forms-Storefront.
+import { shopModel, rangesHtml, shopPages } from "./scripts/lib/shop.mjs";
+import { cartPages, cartBrowserParts, systemsCartScript, termsVersion } from "./scripts/lib/cart.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, "dist");
@@ -49,6 +52,11 @@ let PLANNING = { cal: null, insp: null };
 let EDU = null;
 const ORIGIN = (process.env.SITE_ORIGIN ?? "https://www.siteguardsystems.com.au").replace(/\/$/, "");
 const FORMS = (process.env.FORMS_URL ?? "https://www.siteguardforms.com.au").replace(/\/$/, "");
+const FORMS_APP = (process.env.FORMS_APP_URL ?? "https://app.siteguardforms.com.au").replace(/\/$/, "");
+// The one checkout engine: the storefront's server (POST /api/checkout).
+export const CHECKOUT_ENGINE = (process.env.CHECKOUT_ENGINE ?? FORMS).replace(/\/$/, "");
+// The FORMS shop lives under /forms/ here; its pages are canonical on the FORMS site.
+export const SHOP_BASE = "/forms";
 const LEAD_ENDPOINT = process.env.LEAD_ENDPOINT ?? `${FORMS}/api/lead`;
 const EMAIL = "hello@siteguardsystems.com.au";
 const LINKEDIN = "https://www.linkedin.com/in/silverdaniel";
@@ -82,7 +90,7 @@ export function wordingHits(html, mode) {
 }
 
 // SiteGuard FORMS: while it is in beta, text and never a link.
-const formsName = () => (MODE.beta ? `<span class="forms-soon">SiteGuard FORMS (coming soon)</span>` : `<a href="${FORMS}/">SiteGuard FORMS</a>`);
+const formsName = () => (MODE.beta ? `<span class="forms-soon">SiteGuard FORMS (coming soon)</span>` : `<a href="${shopOn(MODE) ? "/forms/" : `${FORMS}/`}">SiteGuard FORMS</a>`);
 
 const formsWill = () => (MODE.beta ? "will be available on" : "are available on");
 
@@ -112,6 +120,8 @@ const HOME_DOORS = () => [
 
 const pages = [];
 const problems = [];
+// Data files the shop pages load (documents.json, long pack lists).
+const shopFiles = [];
 // DCR warnings (a retired code neither shown nor sold): reported, never blocking.
 const dcrWarnings = [];
 let DCR_PIN = null;
@@ -174,7 +184,8 @@ export const REDIRECTS = [
   ["/planner", "/planning/"], ["/planner/", "/planning/"], ["/planner/*", "/planning/:splat"],
 ];
 // Checkout (WP-S8 onwards) shows the cart; until then it stays hidden.
-const CART_ENABLED = false;
+// data/site-mode.json "checkout" (and FORMS out of beta): scripts/lib/site-mode.mjs shopOn().
+const cartEnabled = () => shopOn(MODE);
 
 /** The header button that follows the launch status. */
 function statusButton() {
@@ -188,13 +199,16 @@ function header(url) {
   const [sh, sl] = statusButton();
   const forms = MODE.beta
     ? `<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon</span>`
-    : `<a href="${FORMS}/">SiteGuard FORMS</a>`;
+    : `<a href="${shopOn(MODE) ? "/forms/" : `${FORMS}/`}"${shopOn(MODE) ? cur(["/forms/"]) : ""}>SiteGuard FORMS</a>`;
+  const cart = cartEnabled()
+    ? `<a class="nav-cart" href="/cart/" data-cart${cur(["/cart/"])}>Cart <span data-cart-count>(0)</span></a>`
+    : `<button class="nav-cart" type="button" data-cart hidden>Cart <span data-cart-count>0</span></button>`;
   return `<a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="wrap header-row">
     <a class="brand" href="/"><img src="/assets/shield.png" alt="" width="34" height="44"><span class="brand-name">SiteGuard <b>Systems</b></span></a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
-    <nav class="nav" id="site-nav" aria-label="Main">${NAV.map(([h, l, also]) => `<a href="${h}"${cur(also ?? [h])}>${l}</a>`).join("")}${forms}<a href="/contact/"${cur(["/contact/"])}>Contact</a><button class="nav-cart" type="button" data-cart${CART_ENABLED ? "" : " hidden"}>Cart <span data-cart-count>0</span></button><a class="cart-link nav-status" href="${sh}"${cur([sh])}>${sl}</a></nav>
+    <nav class="nav" id="site-nav" aria-label="Main">${NAV.map(([h, l, also]) => `<a href="${h}"${cur(also ?? [h])}>${l}</a>`).join("")}${forms}<a href="/contact/"${cur(["/contact/"])}>Contact</a>${cart}<a class="cart-link nav-status" href="${sh}"${cur([sh])}>${sl}</a></nav>
   </div>
 </header>`;
 }
@@ -245,19 +259,20 @@ function crumbs(trail) {
     i === items.length - 1 ? `<li aria-current="page">${esc(l)}</li>` : `<li><a href="${h}">${esc(l)}</a></li>`).join("")}</ol></nav>`;
 }
 
-function page({ url, title, description, body, trail = [], jsonld = [], strip = true, noindex = false }) {
+function page({ url, title, description, body, trail = [], jsonld = [], strip = true, noindex = false, canonical, preview = false }) {
+  noindex = noindex || preview;
   const full = url === "/" ? title : `${title} | SiteGuard Systems`;
   const ld = [...jsonld];
   if (trail.length) ld.push({ "@context": "https://schema.org", "@type": "BreadcrumbList",
     itemListElement: [["/", "Home"], ...trail].map(([h, l], i) => ({ "@type": "ListItem", position: i + 1, name: l, item: ORIGIN + h })) });
-  pages.push({ url, title: full, noindex, html: `<!doctype html>
+  pages.push({ url, title: full, noindex, elsewhere: Boolean(canonical), html: `<!doctype html>
 <html lang="en-AU">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(full)}</title>
 <meta name="description" content="${esc(description)}">
-<link rel="canonical" href="${ORIGIN}${url}">
+<link rel="canonical" href="${canonical ?? ORIGIN + url}">
 ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta property="og:type" content="website">
 <meta property="og:site_name" content="SiteGuard Systems">
 <meta property="og:title" content="${esc(full)}">
@@ -271,8 +286,9 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta prop
 <link rel="stylesheet" href="/assets/site.css">
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n")}
 <script src="/assets/site.js" defer></script>
-</head>
-<body>
+${cartEnabled() ? '<script src="/assets/cart.js" defer></script>\n' : ""}</head>
+<body${preview ? ' data-preview="1"' : ""}>
+${preview ? '<div class="preview-bar" role="note"><strong>Preview build.</strong> This shows every package for review, including packages not yet released for sale. Checkout is switched off.</div>\n' : ""}
 ${header(url)}
 <main id="main">
 ${body}
@@ -397,8 +413,9 @@ async function legal(file, dir = "legal") {
 async function build() {
   const override = {};
   if (argValue("app-status") !== undefined) override.app_status = argValue("app-status");
+  if (argValue("checkout") !== undefined) override.checkout = { true: true, false: false }[argValue("checkout")] ?? argValue("checkout");
   if (argValue("beta") !== undefined) override.beta = { true: true, false: false }[argValue("beta")] ?? argValue("beta");
-  if (PRODUCTION && Object.keys(override).length) problems.push("--app-status and --beta are for preview and test builds; a production build reads data/site-mode.json only");
+  if (PRODUCTION && Object.keys(override).length) problems.push("--app-status, --beta and --checkout are for preview and test builds; a production build reads data/site-mode.json only");
   const sm = await loadSiteMode(ROOT, override);
   MODE = sm.mode;
   for (const p of sm.problems) problems.push(`data: ${p}`);
@@ -677,6 +694,34 @@ ${MODE.app_status === "presale" ? `    <li><a href="/app/founding-offer/">Foundi
     });
   }
 
+  // The FORMS shop and the cart (WP-S8): the storefront's own page builders
+  // (scripts/lib/shop.mjs, cart.mjs) from the same catalogue, under /forms/.
+  // Every shop page is canonical on siteguardforms.com.au and left out of this
+  // sitemap. One cart for everything; checkout goes to the storefront's engine.
+  if (shopOn(MODE)) {
+    const model = shopModel(cat);
+    const T = [["/forms/", "SiteGuard FORMS"]];
+    const shopCrumbs = (trail) => crumbs([...T, ...trail]);
+    page({
+      url: "/forms/", title: "SiteGuard FORMS: HSEQ documents to buy", trail: T, canonical: `${FORMS}/`, preview: cat.preview,
+      description: "SiteGuard FORMS packs and single documents for Australian construction: SWMS, ITPs, plans, forms and registers, filled with your details and emailed as PDFs.",
+      body: `${head(T, "SiteGuard FORMS", "Site-ready HSEQ documents with your name on them: SWMS, inspection and test plans, management plans, forms and registers, filled with your business and project details and emailed as PDFs.")}
+<section class="band band-grey"><div class="wrap">
+  <h2>Choose a range</h2>
+  <div class="register">${rangesHtml(model, SHOP_BASE)}</div>
+  <p class="mt"><a href="/forms/documents/">Single documents</a> · <a href="/forms/subscriptions/">Subscriptions</a> · <a href="/forms/how-ordering-works/">How ordering works</a> · <a href="/forms/faq/">Questions</a></p>
+</div></section>`,
+    });
+    const out = shopPages({ cat, model, base: SHOP_BASE, origin: FORMS, appUrl: FORMS_APP, isoUrl: "/consulting/iso-ims/", beta: MODE.beta, crumbs: (trail) => shopCrumbs(trail) });
+    for (const spec of out.pages) page({ ...spec, trail: [...T, ...spec.trail], canonical: FORMS + spec.url.slice(SHOP_BASE.length) });
+    shopFiles.push(...out.files);
+    const notice = await legal("checkout-notice.md");
+    const noticeBody = notice.body.split("\n").filter((l) => !/☐/.test(l)).join("\n").replace(/^>\s?$/gm, "");
+    for (const spec of cartPages({ crumbs, preview: cat.preview, noticeHtml: render(noticeBody, { linkMap: {} }),
+      termsVersion: termsVersion(await legal("terms-of-sale.md"), await legal("disclaimer.md")),
+      shopHome: "/forms/", browse: "/forms/trade-packs/", engine: CHECKOUT_ENGINE })) page({ ...spec, noindex: true });
+  }
+
   page({
     url: "/contact/sent/", title: "Enquiry sent", trail: [["/contact/", "Contact"], ["/contact/sent/", "Sent"]],
     description: "Your enquiry has been sent. We reply within one business day.",
@@ -727,7 +772,12 @@ async function main() {
     if (Buffer.byteLength(p.html) > 100_000) problems.push(`${p.url}: over 100 KB`);
   }
   for (const st of STATES) await writeFile(path.join(DIST, "planning", `siteguard-planning-${st.toLowerCase()}.ics`), icsFor(PLANNING, st, { origin: ORIGIN, brand: "SiteGuard Systems" }));
-  const listed = pages.filter((p) => !p.url.endsWith(".html") && !p.noindex);
+  const listed = pages.filter((p) => !p.url.endsWith(".html") && !p.noindex && !p.elsewhere);
+  for (const [rel, content] of shopFiles) {
+    await mkdir(path.dirname(path.join(DIST, rel)), { recursive: true });
+    await writeFile(path.join(DIST, rel), content);
+  }
+  if (shopOn(MODE)) await writeFile(path.join(DIST, "assets/cart.js"), systemsCartScript(await cartBrowserParts(), { engine: CHECKOUT_ENGINE, root: `${SHOP_BASE}/` }));
   await writeFile(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.map((p) => `  <url><loc>${ORIGIN}${p.url}</loc></url>`).join("\n")}\n</urlset>\n`);
   await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${ORIGIN}/sitemap.xml\n`);
   // Cloudflare Pages headers and redirects.
