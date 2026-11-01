@@ -397,3 +397,13 @@ mark.placeholder { background: var(--warn-wash); color: var(--ink); padding: 0 0
 /* Long source titles (some carry a URL) wrap instead of pushing the page sideways at 360 px. */
 .plan-sources a { overflow-wrap: anywhere; }
 .doors-5 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+/* SiteGuard App pages (scripts/lib/app-pages.mjs) */
+.lockup { margin: 0 0 1.2rem; }
+.lockup img { height: 60px; width: auto; display: block; }
+.trade-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.4rem 2rem; }
+.trade-list li { padding: 0.55rem 0; border-bottom: 1px solid var(--rule); }
+.trade-list a { display: block; font: 600 1.15rem/1.2 var(--f-cond); }
+.trade-list .small { display: block; }
+details.doclist-titles li { display: block; }
+.rung h3 a { color: var(--ink); }

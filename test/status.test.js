@@ -50,10 +50,14 @@ test("coming_soon: no app or audit prices anywhere; every buy button is Register
     assert.ok(!APP_PRICES.test(text), `${f}: shows an app or audit price`);
     if (isAppPage(f)) assert.ok(!/\$\s?\d/.test(text), `${f}: shows a price`);
     for (const [, href, label] of html.matchAll(/<a class="btn[^"]*" href="([^"]+)">([^<]+)<\/a>/g)) {
-      if (/^\/(register-interest|app|audit)\//.test(href) && /^(app|audit)\//.test(f)) assert.equal(label, "Register interest", `${f}: ${href}`);
+      // A buy button is any button that leads to buying: while coming soon, only Register interest.
+      assert.ok(!/^\/app\/(pricing|founding-offer)\//.test(href), `${f}: ${href}`);
+      if (/^\/register-interest\//.test(href)) assert.equal(label, "Register interest", `${f}: ${href}`);
+      if (/^(Buy|Get started|Founding places|Reserve)/i.test(label)) assert.fail(`${f}: buy button "${label}" while coming soon`);
     }
   }
   assert.ok(pages.has("register-interest/index.html"));
+  assert.ok(!pages.has("app/pricing/index.html") && !pages.has("app/founding-offer/index.html"), "pricing and founding pages hidden while coming soon");
   assert.match(pages.get("index.html"), /class="cart-link nav-status" href="\/register-interest\/">Register interest</);
   assert.match(pages.get("app/index.html"), /data-status-copy>Opens June 2027\. Register your interest now\./);
 });
@@ -61,6 +65,11 @@ test("coming_soon: no app or audit prices anywhere; every buy button is Register
 test("presale: pre-launch lines say founding places are on sale", () => {
   const { pages } = builds.presale;
   assert.match(pages.get("app/index.html"), /data-status-copy>Opens June 2027\. Founding places are on sale now\./);
+  assert.ok(pages.has("app/pricing/index.html") && pages.has("app/founding-offer/index.html"));
+  const pricing = pages.get("app/pricing/index.html");
+  for (const p of ["A$196", "A$271", "A$496", "A$910", "A$1,279", "A$1,757", "A$75"]) assert.ok(pricing.includes(`${p} a month <small>+GST</small>`), p);
+  assert.match(pages.get("app/trade-packages/concrete/index.html"), /A\$196 a month <small>\+GST<\/small>/);
+  assert.match(pages.get("index.html"), /class="cart-link nav-status" href="\/app\/founding-offer\/">Founding places</);
 });
 
 test("live: no pre-launch wording, no Register interest", () => {
@@ -70,6 +79,7 @@ test("live: no pre-launch wording, no Register interest", () => {
     assert.ok(!/\/register-interest\//.test(html), `${f}: links to Register interest while live`);
   }
   assert.ok(!pages.has("register-interest/index.html"));
+  assert.ok(pages.has("app/pricing/index.html") && !pages.has("app/founding-offer/index.html"));
 });
 
 test("FORMS out of beta: a link to the FORMS site, never the coming-soon label", () => {
