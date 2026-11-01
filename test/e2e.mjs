@@ -25,7 +25,7 @@ const exe = process.env.CHROMIUM_PATH ?? (existsSync("/opt/pw-browsers/chromium"
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 const errors = [];
 // Every page type at 360 px: no sideways scroll.
-const PAGES_360 = ["/", "/services/", "/services/iso-ims/", "/library/", "/about/", "/contact/", "/legal/privacy/",
+const PAGES_360 = ["/", "/consulting/", "/consulting/iso-ims/", "/consulting/retainers/", "/library/", "/about/", "/contact/", "/legal/privacy/",
   "/app/", "/audit/", "/register-interest/", "/planning/", "/planning/vic/", "/education/"];
 try {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } });
