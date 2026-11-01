@@ -15,7 +15,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { esc } from "./md.mjs";
-import { showAppPrices } from "./site-mode.mjs";
+import { showAppPrices, monthYear } from "./site-mode.mjs";
 
 export const MODULES = {
   safety: {
@@ -223,17 +223,20 @@ ${related(m)}`,
   if (mode.app_status === "presale") {
     const TF = [...T, ["/app/founding-offer/", "Founding offer"]];
     const f = app.founding;
+    // Dates come from data/app-packages.json (launch.opens, founding.forms_pack_free_from), never typed into copy.
+    const opens = monthYear(app.launch?.opens);
+    const formsFree = monthYear(f.forms_pack_free_from);
     out.push({
       url: "/app/founding-offer/", title: "SiteGuard App founding offer", trail: TF,
-      description: `Founding places on the SiteGuard App and SiteGuard Audit: the first ${f.places} customers get ${f.discount * 100}% off their first year, paid annually, with access from June 2027.`,
+      description: `Founding places on the SiteGuard App and SiteGuard Audit: the first ${f.places} customers get ${f.discount * 100}% off their first year, paid annually, with access from ${opens}.`,
       body: `${head(TF, "Founding offer", `The first ${f.places} customers get ${f.discount * 100}% off their first year of the SiteGuard App or SiteGuard Audit.`)}
 <section class="band"><div class="wrap cols">
   <div><h2>The offer</h2><ul>
     <li>${f.discount * 100}% off your first ${f.term_months} months, paid annually up front.</li>
     <li>${when({ tag: "span" })} Your ${f.term_months} months start when the app opens.</li>
     <li>Your price is locked for those ${f.price_lock_months} months; standard prices apply after that.</li>
-    <li>The matching ${ctx.formsName()} pack is yours free from March 2027, so you have your documents while you wait.</li>
-    <li>If the June 2027 opening moves, you get ${esc(f.delay)}.</li></ul>
+    <li>The matching ${ctx.formsName()} pack is yours free from ${formsFree}, so you have your documents while you wait.</li>
+    <li>If the ${opens} opening moves, you get ${esc(f.delay)}.</li></ul>
     <p class="small">The founding offer terms are published before founding places go on sale.</p></div>
   <div><h2>Founding prices</h2>
     <ul>${app.levels.map((l) => `<li>Trade ${esc(l.name)}: ${money(Math.round(l.price_month * 12 * (1 - f.discount)))} for the first year <small>+GST</small> (standard ${money(l.price_month * 12)})</li>`).join("")}
