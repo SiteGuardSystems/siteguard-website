@@ -94,6 +94,9 @@ p, ul, ol { margin: 0 0 1em; }
 .btn-hivis:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
 .btn-small { padding: 0.55rem 0.85rem; font-size: 1rem; }
 .btn[disabled], .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+/* FORMS in beta (Dan, 1 Nov 2026): the shop is browse only; the buttons the
+   single-documents script draws never show. */
+body[data-browse-only] [data-add-pack], body[data-browse-only] [data-add-doc] { display: none !important; }
 .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 
 /* Sections */
@@ -397,3 +400,110 @@ mark.placeholder { background: var(--warn-wash); color: var(--ink); padding: 0 0
 /* Long source titles (some carry a URL) wrap instead of pushing the page sideways at 360 px. */
 .plan-sources a { overflow-wrap: anywhere; }
 .doors-5 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+/* SiteGuard App pages (scripts/lib/app-pages.mjs) */
+.lockup { margin: 0 0 1.2rem; }
+.lockup img { height: 60px; width: auto; display: block; }
+.trade-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.4rem 2rem; }
+.trade-list li { padding: 0.55rem 0; border-bottom: 1px solid var(--rule); }
+.trade-list a { display: block; font: 600 1.15rem/1.2 var(--f-cond); }
+.trade-list .small { display: block; }
+details.doclist-titles li { display: block; }
+.rung h3 a { color: var(--ink); }
+
+/* Register interest form */
+.form fieldset.choice { border: 0; padding: 0; margin: 0; }
+.form fieldset.choice legend { font-weight: 600; color: var(--ink); padding: 0; margin-bottom: 0.4rem; }
+
+/* FORMS shop price blocks (WP-S8): the same rules as siteguardforms.com.au's site.css, for scripts/lib/shop.mjs. */
+.price-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: 0.6rem; margin-bottom: 0.7rem; }
+.price-opt { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.75rem; border: 1px solid var(--rule-strong); background: var(--paper); }
+.price-opt p { margin: 0; }
+.price-opt .btn { margin-top: auto; align-self: flex-start; }
+.price-opt-best { border: 2px solid var(--hivis); background: var(--hivis-wash); }
+.price-tag { display: inline-block; align-self: flex-start; padding: 0.1rem 0.45rem; background: var(--hivis); color: var(--ink); font: 700 0.85rem/1.4 var(--f-cond); letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 0.3rem; }
+.price-tag-plain { background: var(--site); }
+.price-head { font: 600 1rem/1.2 var(--f-cond); color: var(--ink); }
+.price-opt .amount { font: 700 1.6rem/1.1 var(--f-cond); color: var(--ink); }
+.price-opt .amount small, .from small { font: 400 0.85rem var(--f-body); color: var(--muted); }
+.price-note { font-size: 0.85rem; color: var(--ink-2); }
+.price-monthly { font-size: 0.92rem; margin: 0 0 0.5rem; }
+.price-monthly small { font-size: 0.85rem; color: var(--muted); }
+.steps-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 0 1.5rem; max-width: none; }
+.nav-cart { text-decoration: none; display: inline-block; }
+/* Help chat (P11): a button bottom right; the panel above it. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.help-chat { position: fixed; right: 16px; bottom: 16px; z-index: 50; max-width: calc(100vw - 32px); }
+.help-chat-toggle { display: block; margin-left: auto; padding: .6rem 1rem; border: 0; border-radius: 999px; background: #2B2A2F; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.help-chat-panel { width: 22rem; max-width: 100%; max-height: 70vh; overflow-y: auto; margin-bottom: .5rem; padding: 1rem; border: 1px solid #d8d6dc; border-radius: 8px; background: #fff; box-shadow: 0 6px 24px rgba(0, 0, 0, .18); }
+.help-chat-title { margin: 0 0 .5rem; font-weight: 700; }
+.help-chat-note, .help-chat-sources, .help-chat-fallback, .help-chat-status { font-size: .85rem; color: #555; }
+.help-chat-log { list-style: none; margin: 0; padding: 0; }
+.help-chat-log li { margin: .5rem 0; padding: .5rem .75rem; border-radius: 6px; }
+.help-chat-user { background: #f0eff3; }
+.help-chat-assistant { background: #f7f7f7; border-left: 3px solid #2B2A2F; }
+.help-chat-log p { margin: 0 0 .25rem; }
+.help-chat-form { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+.help-chat-form input { flex: 1 1 10rem; min-width: 0; padding: .5rem; font: inherit; }
+.help-chat-form label:not(.sr-only) { flex-basis: 100%; font-size: .85rem; }
+
+/* Module colour identity (scripts/lib/modules.mjs). One set of tokens per
+   module, from the Brand Suite Rev06 palette, taken by a card or a page's
+   <main> through data-module (the CSP forbids inline style):
+     --mod       brand colour
+     --mod-tint  --mod at 8% on white (card and page-head background)
+     --mod-line  --mod at 30% on white (card border)
+     --mod-ink   --mod darkened only as far as needed for 4.5:1 on --mod-tint
+                 and on white (small text and links)
+     --mod-on    text on a --mod fill (primary buttons), 4.5:1 or better
+   test/modules.test.js computes the WCAG ratios from these values. */
+[data-module="safety"] { --mod: #C62828; --mod-tint: #FAEEEE; --mod-line: #EEBFBF; --mod-ink: #C62828; --mod-on: #FFFFFF; }
+[data-module="quality"] { --mod: #1D5C96; --mod-tint: #EDF2F7; --mod-line: #BBCEE0; --mod-ink: #1D5C96; --mod-on: #FFFFFF; }
+[data-module="environmental"] { --mod: #2E7D32; --mod-tint: #EEF5EF; --mod-line: #C0D8C2; --mod-ink: #2E7D32; --mod-on: #FFFFFF; }
+[data-module="management"] { --mod: #8A5A00; --mod-tint: #F6F2EB; --mod-line: #DCCEB3; --mod-ink: #8A5A00; --mod-on: #FFFFFF; }
+[data-module="forms"] { --mod: #F58220; --mod-tint: #FEF5ED; --mod-line: #FCDABC; --mod-ink: #AD5C17; --mod-on: #2B2A2F; }
+[data-module="audit"] { --mod: #6A6E77; --mod-tint: #F3F3F4; --mod-line: #D2D4D6; --mod-ink: #6A6E77; --mod-on: #FFFFFF; }
+[data-module="consulting"] { --mod: #6A6E77; --mod-tint: #F3F3F4; --mod-line: #D2D4D6; --mod-ink: #6A6E77; --mod-on: #FFFFFF; }
+[data-module="education"] { --mod: #5B3F9E; --mod-tint: #F2F0F7; --mod-line: #CEC5E2; --mod-ink: #5B3F9E; --mod-on: #FFFFFF; }
+
+/* Marks: the single-line label on cards, the full lockup in page heads. */
+.mod-label { margin: 0 0 0.9rem; }
+.mod-label img { height: 28px; width: auto; display: block; }
+.mod-lockup { margin: 0 0 1.1rem; }
+.mod-lockup img { height: 84px; width: auto; display: block; }
+@media (max-width: 760px) { .mod-lockup img { height: 64px; } }
+
+/* Module cards: App hub, home "What SiteGuard does", Audit cross-links.
+   Cards without a module (the SiteGuard App, the Planner) stay white. */
+.doors.mod-cards { border: 0; gap: 1rem; }
+.mod-cards .door, .mod-cards .door:last-child { border: 1px solid var(--rule); border-top: 5px solid var(--ink); background: var(--paper); }
+.mod-cards .door[data-module], .mod-card { background: var(--mod-tint); border: 1px solid var(--mod-line); border-top: 5px solid var(--mod); }
+.mod-card { padding: 1.5rem; }
+.mod-cards .door[data-module] a, .mod-card a:not(.btn) { color: var(--mod-ink); }
+.mod-cards .door[data-module] a:hover, .mod-card a:not(.btn):hover { color: var(--ink); }
+.mod-card h2 { margin-top: 0; }
+.mod-card > .btn-row { align-self: start; }
+a.mod-link { color: var(--mod-ink); font-weight: 600; }
+a.mod-link:hover { color: var(--ink); }
+
+/* Module pages and the Audit, Education and Consulting tabs: a tinted page
+   head with a 5px rule in the module colour; the body stays white. */
+main[data-module] > .page-head { background: var(--mod-tint); border-bottom: 5px solid var(--mod); }
+main[data-module] .band:not(.band-ink) + .band:not(.band-ink) { border-top: 1px solid var(--mod-line); }
+main[data-module] .register { border-top-color: var(--mod); }
+main[data-module] .doc-table th { border-bottom-color: var(--mod); }
+main[data-module] .note { border-left-color: var(--mod); background: var(--mod-tint); }
+main[data-module] .btn-hivis, main[data-module] .band-ink .btn-hivis { background: var(--mod); border-color: var(--mod); color: var(--mod-on); }
+main[data-module] .btn-hivis:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+main[data-module] .band-ink .btn-hivis:hover { background: #fff; border-color: #fff; color: var(--ink); }
+main[data-module] .edu-tabs .edu-count { background: var(--mod); color: var(--mod-on); }
+main[data-module] .plan-states a:hover { background: var(--mod-tint); }
+main[data-module] .plan-states a[aria-current="page"] { background: var(--mod); border-color: var(--mod); color: var(--mod-on); }
+
+/* Status boxes ("Coming soon", "Launching …"): white with a 4px bar in the
+   module colour (ink where there is no module), never the hi-vis Forms tint. */
+.note.status-line, main[data-module] .note.status-line, .door .status-line {
+  background: var(--paper); border-left: 4px solid var(--mod, var(--ink)); border-top: 1px solid var(--mod-line, var(--rule));
+  border-right: 1px solid var(--mod-line, var(--rule)); border-bottom: 1px solid var(--mod-line, var(--rule));
+}
+.plan-cross .status-line { display: inline-block; background: var(--paper); border-left: 4px solid var(--mod, var(--ink)); padding: 0.2rem 0.6rem; }

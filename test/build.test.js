@@ -4,6 +4,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { wordingHits, REDIRECTS, CREDENTIAL } from "../build.mjs";
+import { loadSiteMode } from "../scripts/lib/site-mode.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
@@ -17,7 +18,8 @@ async function htmlFiles(dir = DIST) {
   return out;
 }
 const pages = await Promise.all((await htmlFiles()).map(async (f) => ({ f: path.relative(DIST, f).split(path.sep).join("/"), html: await readFile(f, "utf8") })));
-const MODE = JSON.parse(await readFile(path.join(ROOT, "data/site-mode.json"), "utf8"));
+// The mode the build used: data/site-mode.json plus the storefront's beta switch (site-mode.lock).
+const MODE = (await loadSiteMode(ROOT)).mode;
 const get = (f) => pages.find((p) => p.f === f)?.html ?? assert.fail(`missing ${f}`);
 
 test("the brief's pages exist", () => {
@@ -26,7 +28,8 @@ test("the brief's pages exist", () => {
     "consulting/iso-ims/index.html", "consulting/leadership-advisory/index.html", "consulting/audits-and-inspections/index.html",
     "consulting/retainers/index.html", "consulting/ims-tier-1-uplift/index.html", "library/index.html", "about/index.html",
     "contact/index.html", "partners/index.html", "legal/disclaimer/index.html", "legal/privacy/index.html", "404.html",
-    "app/index.html", "audit/index.html", "register-interest/index.html", "planning/index.html", "education/index.html"]) assert.ok(have.has(p), p);
+    "app/index.html", "app/trade-packages/index.html", "app/builder-bundles/index.html", "app/safety/index.html", "app/quality/index.html",
+    "app/environmental/index.html", "app/management/index.html", "audit/index.html", "audit/checklists/index.html", "register-interest/index.html", "planning/index.html", "education/index.html"]) assert.ok(have.has(p), p);
 });
 
 test("every page: title, description, canonical, one h1, skip link, no inline script or style", () => {
@@ -90,11 +93,12 @@ test("menu: Consulting, SiteGuard App, SiteGuard Audit, Education, Planner, Form
   const nav = get("index.html").match(/<nav class="nav"[\s\S]*?<\/nav>/)[0];
   const labels = [...nav.matchAll(/<(?:a|span|button)\b[^>]*>([^<]+)/g)].map((m) => m[1].trim());
   assert.deepEqual(labels.slice(0, 5), ["Consulting", "SiteGuard App", "SiteGuard Audit", "Education", "Planner"]);
-  assert.equal(labels[5], MODE.beta ? "SiteGuard FORMS: coming soon" : "SiteGuard FORMS");
+  assert.equal(labels[5], MODE.beta ? "SiteGuard FORMS (beta)" : "SiteGuard FORMS");
   assert.equal(labels[6], "Contact");
   assert.match(nav, /<button class="nav-cart"[^>]*data-cart hidden>/); // no checkout yet
   assert.match(nav, /class="cart-link nav-status" href="\/register-interest\/">Register interest</);
-  if (MODE.beta) assert.match(nav, /<span class="cart-link is-soon" aria-disabled="true">SiteGuard FORMS: coming soon<\/span>/);
+  // Dan, 1 Nov 2026 (#94): in beta the FORMS shop is browsable here, so the menu links to it.
+  if (MODE.beta) assert.match(nav, /<a href="\/forms\/">SiteGuard FORMS \(beta\)<\/a>/);
   assert.match(nav, /href="\/planning\/"[^>]*>Planner</);
 });
 
@@ -121,4 +125,45 @@ test("consulting: retainers at A$1,200 a month +GST and the IMS / Tier 1 uplift;
   for (const h of ["/about/", "/library/", "/consulting/audits-and-inspections/", "/consulting/retainers/"]) assert.ok(idx.includes(`href="${h}"`), h);
   for (const f of ["about/index.html", "library/index.html", "consulting/retainers/index.html"]) assert.match(get(f), /<a href="\/consulting\/" aria-current="page">Consulting<\/a>/, f);
   assert.match(get("library/index.html"), /Buy or commission[\s\S]*SiteGuard App[\s\S]*consulting/);
+});
+
+test("SiteGuard App: a page for every trade in data/app-packages.json, module lockups, no document codes", async () => {
+  const app = JSON.parse(await readFile(path.join(ROOT, "data/app-packages.json"), "utf8"));
+  assert.equal(app.group, "app");
+  assert.equal(app.trades.length, 25);
+  for (const t of app.trades) {
+    const html = get(`app/trade-packages/${t.slug}/index.html`);
+    for (const l of app.levels) assert.ok(html.includes(`${t.documents_by_level[l.slug]} documents`), `${t.slug} ${l.slug}`);
+    assert.ok(get("app/trade-packages/index.html").includes(`href="/app/trade-packages/${t.slug}/"`), t.slug);
+  }
+  for (const m of ["safety", "quality", "environmental", "management"]) assert.match(get(`app/${m}/index.html`), new RegExp(`<img src="/assets/brand/sg-${m}-lockup.svg"`));
+  for (const { f, html } of pages) assert.ok(!/\bSG-[A-Z]-[A-Z]{3}-|\bAU-\d\d\b|\bNEW-\d/.test(html), `${f}: internal document code`);
+});
+
+test("SiteGuard Audit: counts from data/audit-checklists.json, the Audit lockup, unlimited clients and audits", async () => {
+  const cl = JSON.parse(await readFile(path.join(ROOT, "data/audit-checklists.json"), "utf8"));
+  assert.equal(Object.values(cl.by_type).reduce((a, b) => a + b, 0), cl.checklists);
+  const hub = get("audit/index.html");
+  assert.ok(hub.includes(`${cl.checklists.toLocaleString("en-AU")} checklists`));
+  assert.match(hub, /<img src="\/assets\/brand\/sg-audit-lockup.svg"/);
+  assert.match(hub, /Unlimited clients and audits/);
+  const lib = get("audit/checklists/index.html");
+  for (const [k, v] of Object.entries(cl.by_type)) assert.ok(lib.includes(`<td>${k}</td><td>${v.toLocaleString("en-AU")}</td>`), k);
+});
+
+test("planner cross-links: planner and inspection pages to SiteGuard Audit, state calendars to SiteGuard App", () => {
+  for (const f of ["planning/index.html", "planning/inspections/index.html"]) assert.match(get(f), /class="band band-grey plan-cross"[\s\S]*href="\/audit\/"/, f);
+  for (const st of ["vic", "nsw", "qld", "sa", "wa", "tas", "act", "nt"]) assert.match(get(`planning/${st}/index.html`), /class="band band-grey plan-cross"[\s\S]*href="\/app\/"/, st);
+});
+
+test("Register interest: posts to /api/lead as app-interest with App / Audit / both and the consent wording", async () => {
+  const { CONSENT_WORDING } = await import("../build.mjs");
+  const html = get("register-interest/index.html");
+  assert.match(html, /data-endpoint="https:\/\/[^"]+\/api\/lead"/);
+  assert.match(html, /name="enquiry_type" value="app-interest"/);
+  for (const v of ["app", "audit", "both"]) assert.match(html, new RegExp(`name="interest" value="${v}"`));
+  assert.match(html, /<input type="checkbox" name="consent" value="yes">/);
+  assert.ok(html.includes(`name="consent_wording" value="${CONSENT_WORDING}"`));
+  assert.ok(html.includes(`<input type="checkbox" name="consent" value="yes">${CONSENT_WORDING}</label>`));
+  assert.match(html, /name="website"/); // honeypot
 });

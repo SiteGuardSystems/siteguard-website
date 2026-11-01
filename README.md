@@ -7,26 +7,59 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | What | Source |
 |---|---|
 | Library numbers and "from" prices | `data/site-facts.json`, written by Hseq-Dev `docs/build_catalogue.py --website <this repo>/data` |
-| Legal pages | `content/legal/`, copied from SiteGuard-Forms `app/server/data/legal` by `npm run sync-legal -- <path>` |
+| The full catalogue: FORMS packs, documents and prices, and the SiteGuard App products (group `"app"`: trade packages, builder bundles, AUDIT seat) | `data/catalogue.json`, written by the same command (WP-S1). Never edit it by hand: `dcr-check` fails a hand edit. The app prices on the App pages (`data/app-packages.json`, interim, from the workbook) must equal its group `"app"`, or the build fails |
+| Document codes and titles | the public DCR extract pinned in `dcr.lock` (see "DCR" below) |
+| Prices (Dan #90: one price source, Hseq-Dev) | the **public view** of Hseq-Dev's two price tables, pinned in `pricing.lock` at `vendor/hseq-dev/pricing/*.public.json` (this repo is public, so never the full tables). `test/pricing-lock.test.js` fails unless every price the site shows or uses equals them: the App pages and their data, the catalogue's group `"app"` rows and founding prepayment (`founding_prepay_cents`, shown to the cent on the founding page), the App checkout forms and the FORMS shop. To change a price: Hseq-Dev `docs/pricing/README.md`, then `python docs/pricing/export_price_tables.py --website ../siteguard-website` (writes the lock, the view and the catalogue's app prices) |
+| Legal pages | `content/legal/`, copied from SiteGuard-Forms `app/server/data/legal` by `npm run sync-legal -- <path>`: the website terms, privacy and disclaimer, and (WP-S11) the FORMS Terms of Sale, Refunds, Checkout Notice, FORMS App Terms of Use, Document Use Disclaimer and Consultant Licence. The App Subscription Terms (SG-LEGAL-12) and Founding Offer Terms (SG-LEGAL-13) are in `content/legal-pending/`, marked PENDING SOLICITOR: published (noindex, out of the sitemap) only once `app_status` is `presale` or `live`, and a production build fails until Dan swaps in the approved wording and changes `status` |
 | Enquiry form | posts to the storefront's `/api/lead` (`LEAD_ENDPOINT`, default `https://www.siteguardforms.com.au/api/lead`) |
+| Help chat (P11) | the "Questions?" widget on every page (`scripts/lib/support-chat.mjs`, `assets/support-chat.js`). The assistant runs on the SiteGuard app API (siteguard-audit `POST /api/support/public/chat`), never on this site. Until `data/support-chat.json` `api_base` (or `SUPPORT_CHAT_API_BASE`) is set it shows the support email only, and the CSP is unchanged |
 | Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
 | Google review link and rating | `data/google-reviews.json`, same way |
 
 ## Status switch (`data/site-mode.json`)
 
-Same file and shape as the storefront's (`beta`), plus `app_status` for the SiteGuard App and SiteGuard Audit (`scripts/lib/site-mode.mjs`):
+`app_status` for the SiteGuard App and SiteGuard Audit, and `checkout` (`scripts/lib/site-mode.mjs`). FORMS `beta` is **not** in this file.
+
+**One beta switch (Dan, 1 Nov 2026, #94).** The FORMS shop is in beta on both sites, and both read one switch: the storefront's `data/site-mode.json` `beta`, the source of truth because the storefront is the checkout engine. It is vendored at `vendor/siteguard-forms-storefront/data/site-mode.json` and pinned by `site-mode.lock` (repo, ref, commit, sha256, beta), like `dcr.lock`. The build refuses a `beta` key in this repo's file, and a vendored copy that doesn't match the lock. CI's **site-mode drift check** (`npm run site-mode-check -- --upstream`, also daily in `.github/workflows/site-mode-drift.yml`) fails when the storefront's beta differs from the vendored one. When Dan turns beta off in the storefront: `npm run sync-site-mode`, commit, rebuild, and both sites open together. The engine refuses every FORMS order while its beta is true whatever this site shows; this site only mirrors it to keep the buttons hidden.
 
 | Key | Value | Effect |
 |---|---|---|
-| `beta` | `true` | SiteGuard FORMS shows as the unlinked label "SiteGuard FORMS: coming soon" |
-| | `false` | a link to siteguardforms.com.au; the build fails if the coming-soon label is left anywhere |
+| `beta` (storefront's) | `true` | the FORMS shop shows under `/forms/` to browse only: a "SiteGuard FORMS is in beta" notice, no buy or subscribe buttons, no cart, no checkout (`data-browse-only`); the menu says "SiteGuard FORMS (beta)" |
+| | `false` | with `checkout` true, the shop and cart open; with `checkout` false, a link to siteguardforms.com.au |
 | `app_status` | `coming_soon` | no app or audit prices anywhere; every buy button is "Register interest"; the header status button goes to `/register-interest/` |
 | | `presale` | founding places on sale (from March 2027): prices, the pricing page and the founding offer page show |
 | | `live` | the app modules are open (June 2027); the build fails if any pre-launch wording is left |
 
-Pre-launch wording ("coming soon", "launching", "Opens June 2027") is allowed only inside elements marked `data-status-copy` (`statusCopy()` in `site-mode.mjs`), so it can be found and removed when the status changes. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
+Every App and Audit status line comes from one helper, `appStatusCopy()` in `site-mode.mjs`: "Coming soon. Register your interest now." while `coming_soon` (no date anywhere), "Launching June 2027. Founding places are on sale now." while `presale`, nothing once `live`. The month is read from `launch.opens` in `data/app-packages.json` (the go-live month), never typed into copy. Pre-launch wording ("coming soon", "launching") is allowed only inside elements marked `data-status-copy` (`statusCopy()`), so it can be found and removed when the status changes; `test/status.test.js` fails if a `coming_soon` build has "2027" inside one. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
 
-The header cart is in the markup but hidden until checkout exists (`CART_ENABLED` in `build.mjs`).
+| `checkout` | `false` (default) | no cart and no App checkout; the header cart stays hidden |
+| | `true` | with `beta` false: the FORMS cart in the header and Add to cart on the shop (WP-S8); App checkouts as `app_status` allows |
+
+## FORMS shop and cart (WP-S8)
+
+The storefront's own page builders, shared byte for byte: `scripts/lib/shop.mjs` (trade, builder, management systems, specialist, consultant packs, single documents, subscriptions, how ordering works, questions), `scripts/lib/cart.mjs` (cart and order pages) and `scripts/lib/cart-browser.js` (the browser cart, wrapped into `/assets/cart.js`). Keep them identical with SiteGuard-Forms-Storefront.
+
+- Rendered from `data/catalogue.json` under `/forms/`. Every shop page has its canonical tag on siteguardforms.com.au, and none is in this sitemap.
+- **Two kinds of checkout (Q1 narrowed by Dan 1 Nov, #96):** everything is sold on one site, with two kinds of checkout. The cart is for FORMS documents and packs (one-off purchases) only. App and Audit "Subscribe" and "Reserve a founding place" each go straight to their own Stripe checkout, never via the cart, each with its own terms to tick (founding: the 20-place limit; the app: account setup). The build fails if any page has an Add to cart button for an `app:` or founding item, and the engine's `/api/checkout` refuses such a line with a reason.
+- `/cart/` posts to the storefront's checkout engine (`CHECKOUT_ENGINE`, default `https://www.siteguardforms.com.au`) with `returnOrigin` and `source_site: "systems"`; the engine re-prices every line from the catalogue. Stripe sends the buyer back to `/order/success/` or `/order/cancelled/` here.
+- Preview a build with the shop on: `node build.mjs --beta=false --checkout=true`.
+
+## SiteGuard App checkout (WP-S9 / WP-S10)
+
+With `checkout` true, the App pages sell through the storefront's checkout engine (P2's routes; `assets/app-checkout.js`):
+
+- `app_status` `presale`: a founding-place form on `/app/founding-offer/` (POST `/api/founding/checkout`), with `/founding/success/` and `/founding/cancelled/` here (the cancelled page gives the place back at once).
+- `app_status` `live`: a subscription form on `/app/pricing/` (POST `/api/subscribe`, annual by default), with `/app/success/` and `/app/cancelled/`.
+- Every call sends `returnOrigin` (this site) and `source_site: "systems"`; the engine only accepts this site's origins.
+- The engine decides too: founding only while its own `app_status` is `presale` and P2's sale window is open; subscriptions only when its `app_status` is `live`, the platform launch endpoint says the app is live, and P2's go-live date has passed. Switch `app_status` here and in the storefront's `data/site-mode.json` together.
+
+## DCR
+
+The same check as SiteGuard-Forms-Storefront (its README has the detail). This repo is public, so it never holds the full DCR: `dcr.lock` pins siteguard-dcr's public page-A extract (Rev23, `vendor/siteguard-dcr/public/rev23/dcr-public.json`) by sha256. `scripts/lib/dcr.mjs` and `scripts/dcr-check.mjs` are the storefront's files, unchanged; keep them identical in both repos.
+
+- **The build** verifies the extract first and stops on a hash mismatch, then fails if `data/catalogue.json` shows or sells a code that isn't a live public code, if a title differs from the DCR title, or if its `dcr_revision` / `dcr_sha256` stamp is missing or differs from `dcr.lock`.
+- **CI** runs `npm run dcr-check` over `data/`, `content/`, `scripts/`, `assets/` and `build.mjs`. Real drift goes in `dcr.allowlist.json` with a reason; never edit product data to pass.
+- **Bumping the DCR:** copy `public/revNN/` from siteguard-dcr into `vendor/siteguard-dcr/public/`, set `dcr.lock`, re-check `dcr.allowlist.json`, and regenerate the catalogue in Hseq-Dev against the same revision. Do it in both sites in the same change.
 
 ## Partners, affiliates and Google reviews
 
@@ -95,3 +128,22 @@ enquiry form in a real browser. Both run in CI.
 | No gated products or markets (CORE, SiteGuard AI, robotics, New Zealand, Singapore, overseas) | build fails; `test/status.test.js` |
 | Redirects: all 301, every target a built page | `REDIRECTS` in `build.mjs`; build fails; `test/build.test.js` |
 | Lighthouse ≥ 90 / 95 / 90 / 95 | run against the Pages preview URL; static pages, self-hosted fonts, no third-party scripts |
+
+## SiteGuard App pages (`scripts/lib/app-pages.mjs`)
+
+`/app/`, `/app/trade-packages/` and a page per trade, `/app/builder-bundles/`, and a page per module (`/app/safety/`, `/quality/`, `/environmental/`, `/management/`) with its lockup from the Brand Suite Rev06 (`assets/brand/`, see Module colour identity). `/app/pricing/` is built once `app_status` is `presale` or `live`; `/app/founding-offer/` only while `presale`.
+
+The data is `data/app-packages.json`, **interim**: generated from the Packages and Pricing workbook (tabs Trade Packages, Trade Package Schedule, Trade Package Contents, App Bundles, Levers) by `python scripts/gen-app-packages.py <workbook.xlsx>`. It carries document titles and counts, never document codes, competitor names, costs or margins. Only issued masters are listed. Once the app products are in packages.py / catalogue.json as group `"app"`, read them from there and retire the generator.
+
+## SiteGuard Audit pages (`scripts/lib/audit-pages.mjs`)
+
+`/audit/` and `/audit/checklists/`. Checklist counts come from `data/audit-checklists.json`, generated from SG_AUDIT_CHECKLIST_BUILD_LIST_Rev02 (siteguard-audit `packages/templates/BUILD_LIST.csv`) by `python scripts/gen-audit-checklists.py <BUILD_LIST.csv>`. Only counts by type, area and wave are copied (the list carries internal document codes and stays in the private repo). The seat price and AI photo-check allowance come from `data/app-packages.json`.
+
+## Module colour identity (`scripts/lib/modules.mjs`)
+
+Each module (Safety, Quality, Environmental, Management, Forms, Audit, Consulting, Education) has a colour from the Brand Suite Rev06 palette and two marks in `assets/brand/`: `sg-<module>-label.svg` (single-line label, on cards) and `sg-<module>-lockup.svg` (full lockup, in page heads). The SVGs are the Rev06 masters unchanged: `SG_<MODULE>_LABEL.svg` and `SG_<MODULE>_LOCKUP.svg` from Hseq-Dev `docs/brand/rev06/SiteGuard_<Module>_Brand_Set_Rev06.zip`. No Robotics or Core marks (reserved / gated).
+
+- Tokens are in `assets/site.css` under `[data-module="<module>"]`: `--mod` (brand colour), `--mod-tint` (8% on white), `--mod-line` (30% on white), `--mod-ink` (darkened only as far as 4.5:1 on the tint and on white needs) and `--mod-on` (text on a `--mod` button). A card or a page's `<main>` takes them through `data-module`; never inline style (the CSP forbids it).
+- Module pages and the Audit, Education and Consulting tab pages: `page({ module })` and `head(trail, h1, lede, module)`.
+- `test/modules.test.js` computes the WCAG ratios from the CSS values and fails under 4.5:1; it also checks every module page's `data-module` and lockup.
+- Screenshots for a PR: `npm run build && npm run screenshots` (dev only; `CHROMIUM_PATH` for a local Chromium) writes `docs/screenshots/module-colour/`.

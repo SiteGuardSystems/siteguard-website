@@ -1,0 +1,21 @@
+name: site-mode drift
+# Dan, 1 Nov 2026 (#94): the FORMS beta switch lives in SiteGuard-Forms-Storefront
+# data/site-mode.json. A pull request here runs the same check in CI; this daily
+# run catches the storefront's switch changing with nothing pushed here, so the
+# Systems site can be synced and rebuilt (npm run sync-site-mode) and both sites
+# open together. The engine refuses FORMS orders while beta is true either way.
+on:
+  schedule:
+    - cron: "17 20 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm run --silent site-mode-check -- --upstream
