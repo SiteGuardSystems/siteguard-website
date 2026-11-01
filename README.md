@@ -28,7 +28,16 @@ Same file and shape as the storefront's (`beta`), plus `app_status` for the Site
 
 Pre-launch wording ("coming soon", "launching", "Opens June 2027") is allowed only inside elements marked `data-status-copy` (`statusCopy()` in `site-mode.mjs`), so it can be found and removed when the status changes. Preview other states with `node build.mjs --app-status=presale --beta=false` (`--production` refuses the overrides). `npm test` builds every state.
 
-The header cart is in the markup but hidden until checkout exists (`CART_ENABLED` in `build.mjs`).
+| `checkout` | `false` (default) | no FORMS shop and no cart; the header cart stays hidden |
+| | `true` | with `beta` false: the FORMS shop under `/forms/` and the cart in the header (WP-S8) |
+
+## FORMS shop and cart (WP-S8)
+
+The storefront's own page builders, shared byte for byte: `scripts/lib/shop.mjs` (trade, builder, management systems, specialist, consultant packs, single documents, subscriptions, how ordering works, questions), `scripts/lib/cart.mjs` (cart and order pages) and `scripts/lib/cart-browser.js` (the browser cart, wrapped into `/assets/cart.js`). Keep them identical with SiteGuard-Forms-Storefront.
+
+- Rendered from `data/catalogue.json` under `/forms/`. Every shop page has its canonical tag on siteguardforms.com.au, and none is in this sitemap.
+- One cart for everything (Dan's Q1 default). `/cart/` posts to the storefront's checkout engine (`CHECKOUT_ENGINE`, default `https://www.siteguardforms.com.au`) with `returnOrigin` and `source_site: "systems"`; the engine re-prices every line from the catalogue. Stripe sends the buyer back to `/order/success/` or `/order/cancelled/` here.
+- Preview a build with the shop on: `node build.mjs --beta=false --checkout=true`.
 
 ## DCR
 

@@ -411,3 +411,20 @@ details.doclist-titles li { display: block; }
 /* Register interest form */
 .form fieldset.choice { border: 0; padding: 0; margin: 0; }
 .form fieldset.choice legend { font-weight: 600; color: var(--ink); padding: 0; margin-bottom: 0.4rem; }
+
+/* FORMS shop price blocks (WP-S8): the same rules as siteguardforms.com.au's site.css, for scripts/lib/shop.mjs. */
+.price-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: 0.6rem; margin-bottom: 0.7rem; }
+.price-opt { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.75rem; border: 1px solid var(--rule-strong); background: var(--paper); }
+.price-opt p { margin: 0; }
+.price-opt .btn { margin-top: auto; align-self: flex-start; }
+.price-opt-best { border: 2px solid var(--hivis); background: var(--hivis-wash); }
+.price-tag { display: inline-block; align-self: flex-start; padding: 0.1rem 0.45rem; background: var(--hivis); color: var(--ink); font: 700 0.85rem/1.4 var(--f-cond); letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 0.3rem; }
+.price-tag-plain { background: var(--site); }
+.price-head { font: 600 1rem/1.2 var(--f-cond); color: var(--ink); }
+.price-opt .amount { font: 700 1.6rem/1.1 var(--f-cond); color: var(--ink); }
+.price-opt .amount small, .from small { font: 400 0.85rem var(--f-body); color: var(--muted); }
+.price-note { font-size: 0.85rem; color: var(--ink-2); }
+.price-monthly { font-size: 0.92rem; margin: 0 0 0.5rem; }
+.price-monthly small { font-size: 0.85rem; color: var(--muted); }
+.steps-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 0 1.5rem; max-width: none; }
+.nav-cart { text-decoration: none; display: inline-block; }

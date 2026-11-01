@@ -8,6 +8,10 @@
 //                 presale      founding places on sale; prices, the pricing
 //                              page and the founding offer page show
 //                 live         the app modules are open; no pre-launch copy
+//   checkout    The FORMS shop and cart on this site (WP-S8). true: the shop
+//               renders under /forms/ (only while beta is false) with the cart
+//               in the header, checking out through the storefront's engine.
+//               false (the default until WP-S9 lands): no shop, no cart.
 //
 // Pre-launch wording ("coming soon", "launching", "opens June 2027") lives only
 // inside elements marked data-status-copy, so it can be found and must be gone
@@ -17,15 +21,17 @@ import path from "node:path";
 
 export const APP_STATUSES = ["coming_soon", "presale", "live"];
 
-/** Read data/site-mode.json. `override` ({ beta, app_status }) is for test and preview builds. */
+/** Read data/site-mode.json. `override` ({ beta, app_status, checkout }) is for test and preview builds. */
 export async function loadSiteMode(root, override = {}) {
   const problems = [];
   let d = {};
   try { d = JSON.parse(await readFile(path.join(root, "data", "site-mode.json"), "utf8")); } catch (e) {
     problems.push(`site-mode.json: ${e.code === "ENOENT" ? "missing" : e.message}`);
   }
-  const mode = { beta: d.beta, app_status: d.app_status };
+  const mode = { beta: d.beta, app_status: d.app_status, checkout: d.checkout ?? false };
   if (override.beta !== undefined) mode.beta = override.beta;
+  if (override.checkout !== undefined) mode.checkout = override.checkout;
+  if (typeof mode.checkout !== "boolean") { problems.push("site-mode.json: checkout must be true or false"); mode.checkout = false; }
   if (override.app_status !== undefined) mode.app_status = override.app_status;
   if (typeof mode.beta !== "boolean") { problems.push("site-mode.json: beta must be true or false"); mode.beta = true; }
   if (!APP_STATUSES.includes(mode.app_status)) {
@@ -34,6 +40,9 @@ export async function loadSiteMode(root, override = {}) {
   }
   return { mode, problems };
 }
+
+/** The FORMS shop and cart show only when checkout is on and FORMS is out of beta. */
+export const shopOn = (mode) => mode.checkout === true && mode.beta === false;
 
 /** App and audit prices show only once founding places are on sale. */
 export const showAppPrices = (mode) => mode.app_status !== "coming_soon";
