@@ -309,9 +309,13 @@ function crumbs(trail) {
     i === items.length - 1 ? `<li aria-current="page">${esc(l)}</li>` : `<li><a href="${h}">${esc(l)}</a></li>`).join("")}</ol></nav>`;
 }
 
+export const TITLE_MAX = 60;
 function page({ url, title, description, body, trail = [], jsonld = [], strip = true, noindex = false, canonical, preview = false, module = null }) {
   noindex = noindex || preview;
-  const full = url === "/" ? title : `${title} | SiteGuard Systems`;
+  // " | SiteGuard Systems" is left off a title that already names SiteGuard when it would take the
+  // title past TITLE_MAX characters, where search results cut it short (F3, SEO check Nov 2026).
+  const suffixed = `${title} | SiteGuard Systems`;
+  const full = url === "/" || (/SiteGuard/.test(title) && suffixed.length > TITLE_MAX) ? title : suffixed;
   const ld = [...jsonld];
   if (trail.length) ld.push({ "@context": "https://schema.org", "@type": "BreadcrumbList",
     itemListElement: [["/", "Home"], ...trail].map(([h, l], i) => ({ "@type": "ListItem", position: i + 1, name: l, item: ORIGIN + h })) });
@@ -327,7 +331,7 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta prop
 <meta property="og:site_name" content="SiteGuard Systems">
 <meta property="og:title" content="${esc(full)}">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:url" content="${ORIGIN}${url}">
+<meta property="og:url" content="${canonical ?? ORIGIN + url}">
 <meta property="og:image" content="${ORIGIN}/assets/apple-touch-icon.png">
 <meta name="theme-color" content="#2B2A2F">
 <link rel="icon" href="/assets/favicon.png" type="image/png">
