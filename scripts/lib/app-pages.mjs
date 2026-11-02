@@ -29,6 +29,11 @@ export const MODULES = {
       "Core site forms: inductions, pre-starts, toolbox talks, hazard, incident and first aid records, inspections",
       "Registers for SWMS, training and competency, high risk work licences, plant, test and tag, and chemicals",
       "Tier 1 safety documents at Heavy Commercial: permits, emergency and health programs"],
+    // Coming features (Module Standard and Management Direction Rev04, 2 Nov 2026): listed as
+    // being added, never as available. No dates: the status line carries timing.
+    coming: ["Inductions run in the app, with a record of who was inducted, when and on what",
+      "Plant: your plant, its checks and its inspections kept together",
+      "Emergency evacuation diagrams for your sites"],
   },
   quality: {
     name: "SiteGuard Quality",
@@ -52,6 +57,11 @@ export const MODULES = {
       "Workforce and tickets carried into your SWMS",
       "Prequalification and contractor information for principal contractors",
       "Governance forms, and full management-system documents for builders"],
+    // Coming features (Module Standard and Management Direction Rev04, 2 Nov 2026).
+    coming: ["QR site access: people sign in and out of site with a QR code",
+      "An on-site dashboard: who is on site today, and what needs attention",
+      "QR toolbox sign-on: the crew signs on to a toolbox talk with a QR code",
+      "A daily brief for the site team"],
   },
 };
 export const MODULE_SLUGS = Object.keys(MODULES);
@@ -196,7 +206,8 @@ ${buyBand()}`,
       url: `/app/${m}/`, title: `${M.name}: a SiteGuard App module`, trail: tm, description: M.lede, module: m,
       body: `${head(tm, M.name, esc(M.lede), m)}
 <section class="band"><div class="wrap cols">
-  <div><h2>What it does</h2><ul>${M.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
+  <div><h2>What it does</h2><ul>${M.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
+    ${M.coming ? `<h2>Being added</h2><p>Features we're building into ${esc(M.name)}. They aren't available yet.</p><ul class="coming">${M.coming.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>` : ""}</div>
   <div>${when({ cls: "note status-line" })}<h2>Where you get it</h2><ul>
     ${inLevels.length ? `<li><a href="/app/trade-packages/">Trade packages</a>: ${inLevels.map(esc).join(", ")}</li>` : ""}
     ${inBundles.length ? `<li><a href="/app/builder-bundles/">Builder bundles</a>: ${inBundles.map((b) => esc(b.replace(/^Builder /, ""))).join(", ")}</li>` : ""}</ul>
