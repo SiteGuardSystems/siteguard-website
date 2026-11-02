@@ -456,6 +456,18 @@ const SERVICES = {
       "Executive risk briefings", "Operational governance support"],
     note: "Leadership advisory is mentoring, not clinical assessment, therapy or coaching. Individual psychological assessment is referred to qualified professionals.",
   },
+  // Custom content (Dan, Q-ED3, 2 Nov 2026; Competitor Gap Rev03 section 7, E5): listed under
+  // Consulting and Education as "on request", enquiry only. No price (Q-ED2: quoted per job for now).
+  "custom-content": {
+    nav: "Custom content (on request)", title: "Custom content, on request", short: "Site-specific induction videos and custom toolbox talks, on request",
+    lede: "Video content made for your business, on request: a full site-specific induction video, custom toolbox talks or a company induction video, kept private to you.",
+    items: ["Full site-specific induction videos: your site's layout, rules, emergency points, access and hazards",
+      "Custom toolbox talks for your work and your crews", "Company induction videos for your own workers",
+      "Private to your business: not published on YouTube or in the public SiteGuard Education library",
+      "Filmed only with written consent from everyone on camera and the site owner's permission",
+      "Updated when the site layout changes, as staged construction moves access and exits"],
+    note: "On request, by enquiry only. Tell us about your site and what you need, and we'll scope it with you. A site-specific induction doesn't replace the General Construction Induction (White Card), and the business running the site stays responsible for its inductions.",
+  },
 };
 const TC = [["/consulting/", "Consulting"]];
 
@@ -546,7 +558,12 @@ ${introVideo(VIDEO, { heading: "Meet SiteGuard Systems" })}
       description: "SiteGuard Education videos for Australian construction: how-tos, toolbox talks and inductions to show your crews, also on YouTube.",
       jsonld: [educationJsonLd(EDU, ORIGIN)].filter(Boolean),
       body: `${ed(TE, "SiteGuard Education", "Practical HSEQ videos for Australian construction, to watch here or show your crews.")}
-${educationBody(EDU)}`,
+${educationBody(EDU)}
+<section class="band band-grey"><div class="wrap">
+  <h2>Custom content, on request</h2>
+  <p>The videos here are general and free to use. For content made for your business, such as a full site-specific induction video, custom toolbox talks or a company induction video, ask us. It's on request and enquiry only, scoped with you through SiteGuard Consulting, and kept private to your business.</p>
+  <p><a class="btn btn-hivis" href="/consulting/custom-content/">Ask about custom content</a></p>
+</div></section>`,
     });
     for (const g of EDU.groups) {
       const tg = [...TE, [seriesPath(g.slug), g.title]];

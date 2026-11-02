@@ -118,6 +118,22 @@ test("_redirects: every rule is a 301 to a built page", async () => {
   assert.match(r, /^\/services\/\* \/consulting\/:splat 301$/m);
 });
 
+test("custom content on request (Q-ED3): under Consulting and Education, enquiry only, no price", () => {
+  const cc = get("consulting/custom-content/index.html");
+  assert.match(cc, /<h1>Custom content, on request<\/h1>/);
+  assert.match(cc, /On request, by enquiry only\./);
+  assert.match(cc, /site-specific induction video/);
+  assert.ok(cc.includes('href="/contact/"'), "enquiry button");
+  const main = (html) => html.slice(html.indexOf("<main"), html.indexOf("</main>"));
+  for (const f of ["consulting/custom-content/index.html", "education/index.html"]) {
+    assert.ok(!/(A\$|\$\s?\d|\+GST|per hour|a month)/.test(main(get(f))), `${f}: no price`);
+  }
+  assert.ok(get("consulting/index.html").includes('href="/consulting/custom-content/"'), "listed under Consulting");
+  const edu = get("education/index.html");
+  assert.match(edu, /Custom content, on request/);
+  assert.ok(edu.includes('href="/consulting/custom-content/"'), "linked from Education");
+});
+
 test("consulting: retainers at A$1,200 a month +GST and the IMS / Tier 1 uplift; about and library listed under Consulting", () => {
   assert.match(get("consulting/retainers/index.html"), /A\$1,200 a month \+GST/);
   assert.match(get("consulting/ims-tier-1-uplift/index.html"), /<h1>IMS and Tier 1 uplift<\/h1>/);
