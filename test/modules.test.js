@@ -137,3 +137,13 @@ test("module cards: App hub, home, Audit cross-links; label at the top of each",
 test("no inline style for module colour (the CSP forbids it)", () => {
   for (const [f, html] of pages) assert.ok(!/\sstyle=/.test(html), f);
 });
+
+test("Safety and Management list their coming features as not yet available (Module Standard Rev04)", async () => {
+  const page = (m) => readFile(path.join(DIST, "app", m, "index.html"), "utf8");
+  const safety = await page("safety");
+  for (const w of ["Being added", "Inductions run in the app", "Plant:", "Emergency evacuation diagrams"]) assert.ok(safety.includes(w), `safety: ${w}`);
+  const management = await page("management");
+  for (const w of ["Being added", "QR site access", "on-site dashboard", "QR toolbox sign-on", "daily brief"]) assert.ok(management.includes(w), `management: ${w}`);
+  for (const html of [safety, management]) assert.ok(html.includes("They aren't available yet."));
+  for (const m of ["quality", "environmental"]) assert.ok(!(await page(m)).includes("Being added"), m);
+});
