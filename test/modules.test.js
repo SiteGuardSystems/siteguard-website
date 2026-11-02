@@ -141,9 +141,9 @@ test("no inline style for module colour (the CSP forbids it)", () => {
 test("Safety and Management list their coming features as not yet available (Module Standard Rev04)", async () => {
   const page = (m) => readFile(path.join(DIST, "app", m, "index.html"), "utf8");
   const safety = await page("safety");
-  for (const w of ["Being added", "Inductions run in the app", "Plant:", "Emergency evacuation diagrams"]) assert.ok(safety.includes(w), `safety: ${w}`);
+  for (const w of ["Being added", "organisation induction", "site-specific induction for each project", "Site sign-in by QR", "Plant:", "plant risk assessments", "Emergency evacuation diagrams", "helps you prepare"]) assert.ok(safety.includes(w), `safety: ${w}`);
   const management = await page("management");
-  for (const w of ["Being added", "QR site access", "on-site dashboard", "QR toolbox sign-on", "daily brief"]) assert.ok(management.includes(w), `management: ${w}`);
+  for (const w of ["Being added", "QR site access", "do the project induction, then sign in", "live on-site dashboard", "evacuation roll call", "QR toolbox sign-on", "daily pre-start brief", "reads and acknowledges it at sign-in"]) assert.ok(management.includes(w), `management: ${w}`);
   for (const html of [safety, management]) assert.ok(html.includes("They aren't available yet."));
   for (const m of ["quality", "environmental"]) assert.ok(!(await page(m)).includes("Being added"), m);
 });
