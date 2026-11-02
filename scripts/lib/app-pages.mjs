@@ -29,11 +29,14 @@ export const MODULES = {
       "Core site forms: inductions, pre-starts, toolbox talks, hazard, incident and first aid records, inspections",
       "Registers for SWMS, training and competency, high risk work licences, plant, test and tag, and chemicals",
       "Tier 1 safety documents at Heavy Commercial: permits, emergency and health programs"],
-    // Coming features (Module Standard and Management Direction Rev04, 2 Nov 2026): listed as
-    // being added, never as available. No dates: the status line carries timing.
-    coming: ["Inductions run in the app, with a record of who was inducted, when and on what",
-      "Plant: your plant, its checks and its inspections kept together",
-      "Emergency evacuation diagrams for your sites"],
+    // Coming features: Module Standard and Management Direction Rev04 (2 Nov 2026) section 7,
+    // drawn from sections 4.1 (inductions, and the site gate when Safety is held on its own),
+    // 9 (evacuation diagrams) and 10 (plant suite). Listed as being added, never as available.
+    // No dates: the status line carries timing. No claims: the diagram builder "helps you prepare".
+    coming: ["Inductions: your organisation induction and a site-specific induction for each project, done on a phone, with a quiz, sign-off, an induction register and re-induction",
+      "Site sign-in by QR, checked against inductions, when you hold Safety without Management",
+      "Plant: a plant and equipment register, plant risk assessments, operator familiarisation, pre-start checks, hire plant receipt, scheduled inspections, and defect and out-of-service tagging",
+      "Emergency evacuation diagrams: a guided builder that helps you prepare a diagram for each site, printable for posting, with a review prompt when the site layout changes"],
   },
   quality: {
     name: "SiteGuard Quality",
@@ -57,11 +60,12 @@ export const MODULES = {
       "Workforce and tickets carried into your SWMS",
       "Prequalification and contractor information for principal contractors",
       "Governance forms, and full management-system documents for builders"],
-    // Coming features (Module Standard and Management Direction Rev04, 2 Nov 2026).
-    coming: ["QR site access: people sign in and out of site with a QR code",
-      "An on-site dashboard: who is on site today, and what needs attention",
-      "QR toolbox sign-on: the crew signs on to a toolbox talk with a QR code",
-      "A daily brief for the site team"],
+    // Coming features: Module Standard and Management Direction Rev04 (2 Nov 2026) sections 7 and 12.
+    // Listed as being added, never as available; no dates.
+    coming: ["QR site access: one code per site. People do the project induction, then sign in and out with the same code",
+      "A live on-site dashboard: who is on site now, by company, with a one-tap evacuation roll call",
+      "QR toolbox sign-on: workers scan the talk's code, read or watch it, and sign",
+      "A daily pre-start brief: the supervisor publishes today's brief, and each worker reads and acknowledges it at sign-in"],
   },
 };
 export const MODULE_SLUGS = Object.keys(MODULES);
