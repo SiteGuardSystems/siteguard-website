@@ -49,7 +49,7 @@ test("App tab while coming soon: no founding offer, no launch date, no price", {
     const t = text(html);
     assert.ok(!/founding/i.test(t), `${f}: founding offer`);
     if (f === "index.html" || /^(app|audit|register-interest)\//.test(f)) {
-      assert.ok(!/\b20(26|27|28)\b(?! SiteGuard Systems)/.test(t.replace(/© 20\d\d/g, "")), `${f}: a date`);
+      assert.ok(!/\b202[6-9]\b/.test(t.replace(/©\s*\d{4}/g, "")), `${f}: a date`);
       assert.ok(!/\$\s?\d/.test(t), `${f}: a price`);
     }
   }
