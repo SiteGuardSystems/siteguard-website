@@ -29,7 +29,7 @@ import { loadSupportChat, supportChatWidget, supportChatConnect } from "./script
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
 // The FORMS shop and the cart (WP-S8): the same files as SiteGuard-Forms-Storefront.
-import { shopModel, rangesHtml, shopPages as shopPagesFor } from "./scripts/lib/shop.mjs";
+import { shopModel, rangesHtml, shopPages as shopPagesFor, INTEREST_LABEL } from "./scripts/lib/shop.mjs";
 import { cartPages, cartBrowserParts, systemsCartScript, termsVersion } from "./scripts/lib/cart.mjs";
 import { moduleLabel, moduleLockup, modAttr } from "./scripts/lib/modules.mjs";
 
@@ -86,7 +86,10 @@ export const GATED = [/\bCORE\b/g, /\bSiteGuard AI\b|\brobot(?:s|ic|ics)?\b|\bhu
 export function checkedText(html, mode) {
   let s = withoutStatusCopy(html.replace(/<script[\s\S]*?<\/script>/g, " "));
   if (mode.beta) s = s.replace(new RegExp(FORMS_EXCEPTION.source, "g"), " ");
-  return s.replace(/<[^>]+>/g, " ").split(CREDENTIAL).join(" ");
+  // The shop's "Coming soon: register interest" label (shared shop.mjs; go-live
+  // 7 Nov 2026) stands in for the FORMS subscription and consultant-plan
+  // buttons while they are off: allowed as that exact label only.
+  return s.replace(/<[^>]+>/g, " ").split(CREDENTIAL).join(" ").split(INTEREST_LABEL).join(" ");
 }
 
 /** Banned and gated words on a page (an empty list is a pass). */
