@@ -55,7 +55,8 @@ test("coming_soon: no app or audit prices anywhere; every buy button is Register
       // A buy button is any button that leads to buying: while coming soon, only Register interest.
       assert.ok(!/^\/app\/(pricing|founding-offer)\//.test(href), `${f}: ${href}`);
       if (/^\/register-interest\//.test(href)) assert.equal(label, "Register interest", `${f}: ${href}`);
-      if (/^(Buy|Get started|Founding places|Reserve)/i.test(label)) assert.fail(`${f}: buy button "${label}" while coming soon`);
+      // FORMS one-off packs (the /forms/ shop copy) follow the FORMS beta switch, not app_status.
+      if (!f.startsWith("forms/") && /^(Buy|Get started|Founding places|Reserve)/i.test(label)) assert.fail(`${f}: buy button "${label}" while coming soon`);
     }
   }
   assert.ok(pages.has("register-interest/index.html"));
@@ -112,7 +113,7 @@ test("FORMS out of beta (checkout off): a link to the FORMS site; in beta: the b
   assert.match(pages.get("index.html"), /<nav[\s\S]*<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS<\/a>[\s\S]*<\/nav>/);
   assert.ok(!pages.has("forms/index.html"));
   const beta = builds.coming_soon.pages;
-  assert.match(beta.get("index.html"), /<nav[\s\S]*<a href="\/forms\/">SiteGuard FORMS \(beta\)<\/a>[\s\S]*<\/nav>/);
+  assert.match(beta.get("index.html"), /<nav[\s\S]*<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS \(beta\)<\/a>[\s\S]*<\/nav>/);
   for (const [f, html] of beta) assert.ok(!/SiteGuard FORMS(:| \() ?coming soon/.test(html), f);
 });
 

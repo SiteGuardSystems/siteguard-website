@@ -97,8 +97,8 @@ test("menu: Consulting, SiteGuard App, SiteGuard Audit, Education, Planner, Form
   assert.equal(labels[6], "Contact");
   assert.match(nav, /<button class="nav-cart"[^>]*data-cart hidden>/); // no checkout yet
   assert.match(nav, /class="cart-link nav-status" href="\/register-interest\/">Register interest</);
-  // Dan, 1 Nov 2026 (#94): in beta the FORMS shop is browsable here, so the menu links to it.
-  if (MODE.beta) assert.match(nav, /<a href="\/forms\/">SiteGuard FORMS \(beta\)<\/a>/);
+  // Go-live 7 Nov 2026: the Forms link goes to the storefront, marked beta while its beta switch is on.
+  assert.match(nav, MODE.beta ? /<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS \(beta\)<\/a>/ : /<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS<\/a>/);
   assert.match(nav, /href="\/planning\/"[^>]*>Planner</);
 });
 
@@ -154,15 +154,19 @@ test("SiteGuard App: a page for every trade in data/app-packages.json, module lo
   for (const { f, html } of pages) assert.ok(!/\bSG-[A-Z]-[A-Z]{3}-|\bAU-\d\d\b|\bNEW-\d/.test(html), `${f}: internal document code`);
 });
 
-test("SiteGuard Audit: counts from data/audit-checklists.json, the Audit lockup, unlimited clients and audits", async () => {
+test("SiteGuard Audit: only a launch-ready checklist count, never the build list's size; the Audit lockup, unlimited clients and audits", async () => {
   const cl = JSON.parse(await readFile(path.join(ROOT, "data/audit-checklists.json"), "utf8"));
   assert.equal(Object.values(cl.by_type).reduce((a, b) => a + b, 0), cl.checklists);
   const hub = get("audit/index.html");
-  assert.ok(hub.includes(`${cl.checklists.toLocaleString("en-AU")} checklists`));
+  const lib = get("audit/checklists/index.html");
+  for (const html of [hub, lib]) {
+    assert.ok(!html.includes(`${cl.checklists.toLocaleString("en-AU")} checklists`), "no build-list count");
+    for (const [k, v] of Object.entries(cl.by_type)) assert.ok(!html.includes(`<td>${k}</td><td>${v.toLocaleString("en-AU")}</td>`), k);
+    assert.ok(!/through 2027/.test(html), "no date");
+  }
+  if (Number.isInteger(cl.launch_ready) && cl.launch_ready > 0) assert.ok(hub.includes(`${cl.launch_ready.toLocaleString("en-AU")} checklists ready`));
   assert.match(hub, /<img src="\/assets\/brand\/sg-audit-lockup.svg"/);
   assert.match(hub, /Unlimited clients and audits/);
-  const lib = get("audit/checklists/index.html");
-  for (const [k, v] of Object.entries(cl.by_type)) assert.ok(lib.includes(`<td>${k}</td><td>${v.toLocaleString("en-AU")}</td>`), k);
 });
 
 test("planner cross-links: planner and inspection pages to SiteGuard Audit, state calendars to SiteGuard App", () => {

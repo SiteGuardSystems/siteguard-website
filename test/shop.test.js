@@ -54,7 +54,7 @@ test("FORMS in beta (the default, and with checkout on): the shop shows to brows
       assert.match(html, /<button class="nav-cart" type="button" data-cart hidden>/, `${f}: header cart hidden`);
     }
     const home = await read(d, "index.html");
-    assert.ok(home.includes('<a href="/forms/">SiteGuard FORMS (beta)</a>'));
+    assert.ok(home.includes('<a href="https://www.siteguardforms.com.au/">SiteGuard FORMS</a> <span class="forms-soon">(beta)</span>'));
     assert.ok(!home.includes("/assets/cart.js"));
     for (const rel of SHOP_PAGES) {
       const html = await read(d, rel);
