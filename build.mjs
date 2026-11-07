@@ -65,6 +65,10 @@ export const SHOP_BASE = "/forms";
 export const STRIPE_CHECKOUT = "https://checkout.stripe.com";
 const LEAD_ENDPOINT = process.env.LEAD_ENDPOINT ?? `${FORMS}/api/lead`;
 const EMAIL = "hello@siteguardsystems.com.au";
+// The support address on /support/ and /support/delete-account/ (the store
+// listings link both). SUPPORT_EMAIL at build time sets it (support@ once
+// that mailbox exists); until then it is the hello@ address.
+export const SUPPORT_EMAIL = (process.env.SUPPORT_EMAIL ?? "").trim() || EMAIL;
 const LINKEDIN = "https://www.linkedin.com/in/silverdaniel";
 // Rebaseline 31 Oct 2026: the Certificate of Attainment wording. Never
 // "Exemplar Global Certified Lead Auditor". This exact line is the only place
@@ -296,7 +300,7 @@ function footer() {
       ${Object.entries(SERVICES).map(([slug, s]) => `<li><a href="/consulting/${slug}/">${esc(s.nav)}</a></li>`).join("")}
       <li><a href="/library/">Document library</a></li><li><a href="/about/">About Daniel Silver</a></li></ul></div>
     <div><h2>Products and tools</h2><ul><li><a href="/app/">SiteGuard App</a></li><li><a href="/audit/">SiteGuard Audit</a></li><li><a href="/education/">SiteGuard Education</a></li><li><a href="/planning/">Planner</a></li></ul></div>
-    <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li>${MODE.app_status === "live" ? "" : `<li><a href="/register-interest/">Register interest</a></li>`}<li><a href="/partners/">Partners and referrals</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
+    <div><h2>Contact</h2><ul><li><a href="mailto:${EMAIL}">${EMAIL}</a></li><li><a href="${LINKEDIN}">LinkedIn</a></li><li><a href="/contact/">Send an enquiry</a></li>${MODE.app_status === "live" ? "" : `<li><a href="/register-interest/">Register interest</a></li>`}<li><a href="/partners/">Partners and referrals</a></li><li><a href="/support/">Support</a></li></ul>${reviewBadge(TRUST, { compact: true })}</div>
     <div><h2>Legal</h2><ul>${LEGAL_ON.map((l) => `<li><a href="/legal/${l.slug}/">${esc(l.nav)}</a></li>`).join("")}</ul></div>
   </div>
   <p class="footer-base">SiteGuard provides frameworks, systems and advisory support. Work health and safety duties stay with the person conducting the business or undertaking.<br>© ${new Date().getFullYear()} SiteGuard Systems · ABN 36 765 797 871</p>
@@ -828,6 +832,51 @@ ${browseOnly() ? BETA_NOTICE : ""}<section class="band band-grey"><div class="wr
     for (const spec of cartPages({ crumbs, preview: cat.preview, noticeHtml: render(noticeBody, { linkMap: {} }),
       termsVersion: termsVersion(await legal("terms-of-sale.md"), await legal("disclaimer.md")),
       shopHome: "/forms/", browse: "/forms/trade-packs/", engine: CHECKOUT_ENGINE })) page({ ...spec, noindex: true });
+  }
+
+  // Support and account deletion (linked from the app store listings). Plain
+  // words; no promise beyond replying. The address is SUPPORT_EMAIL.
+  {
+    const TS = [["/support/", "Support"]];
+    const mail = `<a href="mailto:${esc(SUPPORT_EMAIL)}">${esc(SUPPORT_EMAIL)}</a>`;
+    if (!/^[^\s@<>"]+@[^\s@<>"]+\.[a-z]{2,}$/i.test(SUPPORT_EMAIL)) problems.push(`SUPPORT_EMAIL "${SUPPORT_EMAIL}" isn't an email address`);
+    page({
+      url: "/support/", title: "Support", trail: TS,
+      description: "How to get help from SiteGuard: the support email, what to send us, and how to ask for your account to be deleted.",
+      body: `${head(TS, "Support", "How to get help with a SiteGuard account, an order or a document.")}
+<section class="band"><div class="wrap cols">
+  <div><h2>Email us</h2>
+    <p><strong>${mail}</strong></p>
+    <p>We reply within one business day.</p>
+    <h2 class="mt">What to send us</h2><ul>
+    <li>Your name and the email address on your account or order.</li>
+    <li>Your order number, if it's about an order.</li>
+    <li>What you were trying to do and what went wrong. A screenshot helps.</li>
+    <li>For a document: its reference and revision (on every page), and what needs fixing.</li></ul></div>
+  <div><h2>Your account</h2>
+    <p>You can ask us to delete your account and your personal information at any time, without the app. <a href="/support/delete-account/">How to delete your account</a>.</p>
+    <p>To see or correct the personal information we hold about you, email us. Our <a href="/legal/privacy/">Privacy Policy</a> explains how we handle it.</p>
+    <div class="note"><p><strong>Not for emergencies.</strong> If someone is hurt or in danger, call 000.</p></div></div>
+</div></section>`,
+    });
+    page({
+      url: "/support/delete-account/", title: "Delete your account", trail: [...TS, ["/support/delete-account/", "Delete your account"]],
+      description: "How to ask SiteGuard to delete your account and personal information, by email, without using the app.",
+      body: `${head([...TS, ["/support/delete-account/", "Delete your account"]], "Delete your account", "You can ask us to delete your SiteGuard account and the personal information linked to it. You don't need the app to do this.")}
+<section class="band"><div class="wrap cols">
+  <div><h2>How to ask</h2><ol class="steps">
+    <li><h3>Email us</h3><p>Send an email to ${mail} from the email address on your account, with the subject "Delete my account".</p></li>
+    <li><h3>Tell us who you are</h3><p>Include your name and your business name, so we can find the right account.</p></li>
+    <li><h3>We check it's you</h3><p>We reply within one business day. Before we delete anything, we confirm the request came from you.</p></li>
+    <li><h3>We delete it</h3><p>We delete your account and tell you by email when it's done.</p></li></ol></div>
+  <div><h2>What we delete</h2><ul>
+    <li>Your account and your sign-in details.</li>
+    <li>Your profile and the personal information linked to your account.</li></ul>
+    <h2 class="mt">What we may have to keep</h2>
+    <p>Some records must be kept by law for a set time, such as tax invoices and payment records (for example, tax records for 5 years). We keep those only for as long as the law requires, and then delete them. See our <a href="/legal/privacy/">Privacy Policy</a>.</p>
+    <p class="small">Questions about this? Email ${mail}.</p></div>
+</div></section>`,
+    });
   }
 
   page({
