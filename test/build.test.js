@@ -97,8 +97,8 @@ test("menu: Consulting, SiteGuard App, SiteGuard Audit, Education, Planner, Form
   assert.equal(labels[6], "Contact");
   assert.match(nav, /<button class="nav-cart"[^>]*data-cart hidden>/); // no checkout yet
   assert.match(nav, /class="cart-link nav-status" href="\/register-interest\/">Register interest</);
-  // Dan, 1 Nov 2026 (#94): in beta the FORMS shop is browsable here, so the menu links to it.
-  if (MODE.beta) assert.match(nav, /<a href="\/forms\/">SiteGuard FORMS \(beta\)<\/a>/);
+  // Go-live 7 Nov 2026: the Forms link goes to the storefront, marked beta while its beta switch is on.
+  assert.match(nav, MODE.beta ? /<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS \(beta\)<\/a>/ : /<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS<\/a>/);
   assert.match(nav, /href="\/planning\/"[^>]*>Planner</);
 });
 

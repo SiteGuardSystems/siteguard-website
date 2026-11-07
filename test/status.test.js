@@ -55,7 +55,8 @@ test("coming_soon: no app or audit prices anywhere; every buy button is Register
       // A buy button is any button that leads to buying: while coming soon, only Register interest.
       assert.ok(!/^\/app\/(pricing|founding-offer)\//.test(href), `${f}: ${href}`);
       if (/^\/register-interest\//.test(href)) assert.equal(label, "Register interest", `${f}: ${href}`);
-      if (/^(Buy|Get started|Founding places|Reserve)/i.test(label)) assert.fail(`${f}: buy button "${label}" while coming soon`);
+      // FORMS one-off packs (the /forms/ shop copy) follow the FORMS beta switch, not app_status.
+      if (!f.startsWith("forms/") && /^(Buy|Get started|Founding places|Reserve)/i.test(label)) assert.fail(`${f}: buy button "${label}" while coming soon`);
     }
   }
   assert.ok(pages.has("register-interest/index.html"));
