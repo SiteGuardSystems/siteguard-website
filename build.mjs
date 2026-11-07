@@ -29,7 +29,7 @@ import { loadSupportChat, supportChatWidget, supportChatConnect } from "./script
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
 // The FORMS shop and the cart (WP-S8): the same files as SiteGuard-Forms-Storefront.
-import { shopModel, rangesHtml, shopPages } from "./scripts/lib/shop.mjs";
+import { shopModel, rangesHtml, shopPages as shopPagesFor } from "./scripts/lib/shop.mjs";
 import { cartPages, cartBrowserParts, systemsCartScript, termsVersion } from "./scripts/lib/cart.mjs";
 import { moduleLabel, moduleLockup, modAttr } from "./scripts/lib/modules.mjs";
 
@@ -95,10 +95,17 @@ export function wordingHits(html, mode) {
   return [...new Set([...(text.match(BANNED) ?? []), ...GATED.flatMap((re) => text.match(re) ?? [])])];
 }
 
-// SiteGuard FORMS: while it is in beta (the storefront's one switch, Dan 1 Nov
-// 2026), a link to the shop under /forms/ to browse, marked beta; no orders.
-const formsHref = () => (shopShown(MODE) ? "/forms/" : `${FORMS}/`);
-const formsName = () => (MODE.beta ? `<a href="/forms/">SiteGuard FORMS</a> <span class="forms-soon">(beta)</span>` : `<a href="${formsHref()}">SiteGuard FORMS</a>`);
+// SiteGuard FORMS: the menu and every "SiteGuard FORMS" link go to the
+// storefront, siteguardforms.com.au (go-live 7 Nov 2026), marked beta while
+// the storefront's one beta switch is on. The /forms/ copy of the shop here
+// is still built while shopShown() (browse only in beta; canonical on the
+// storefront), but nothing in the menu points at it.
+const formsHref = () => `${FORMS}/`;
+const formsName = () => (MODE.beta ? `<a href="${formsHref()}">SiteGuard FORMS</a> <span class="forms-soon">(beta)</span>` : `<a href="${formsHref()}">SiteGuard FORMS</a>`);
+// The storefront's shop builders (shared, byte-identical): the "register
+// interest" form for FORMS subscriptions and consultant plans (both off at
+// go-live) posts to this site's enquiry endpoint.
+const shopPages = (ctx) => shopPagesFor({ leadEndpoint: LEAD_ENDPOINT, ...ctx });
 
 const formsWill = () => (MODE.beta ? "will be available on" : "are available on");
 
@@ -249,7 +256,7 @@ function statusButton() {
 function header(url) {
   const cur = (paths) => (paths.some((p) => url.startsWith(p)) ? ' aria-current="page"' : "");
   const [sh, sl] = statusButton();
-  const forms = `<a href="${formsHref()}"${shopShown(MODE) ? cur(["/forms/"]) : ""}>SiteGuard FORMS${MODE.beta ? " (beta)" : ""}</a>`;
+  const forms = `<a href="${formsHref()}">SiteGuard FORMS${MODE.beta ? " (beta)" : ""}</a>`;
   const cart = cartEnabled()
     ? `<a class="nav-cart" href="/cart/" data-cart${cur(["/cart/"])}>Cart <span data-cart-count>(0)</span></a>`
     : `<button class="nav-cart" type="button" data-cart hidden>Cart <span data-cart-count>0</span></button>`;
@@ -364,7 +371,7 @@ const enquire = (label = "Send an enquiry") => `<p><a class="btn btn-hivis" href
 // enquiry_type=app-interest. The consent basis is recorded with the lead
 // (S077 fields): ticking the box is express consent to launch emails, and
 // the exact wording shown is sent with it.
-export const CONSENT_WORDING = "Email me about the SiteGuard App and SiteGuard Audit: when founding places and the app open, and the founding offer. I can unsubscribe at any time.";
+export const CONSENT_WORDING = "Email me about the SiteGuard App and SiteGuard Audit, including when they open. I can unsubscribe at any time.";
 
 function interestForm(app) {
   const trades = [...(app?.trades ?? []).map((t) => t.name), "Builder", "HSEQ consultant", "Other business"];
@@ -694,7 +701,7 @@ ${XAUDIT}${CTA}`,
       <li>Written to Australian WHS laws (the OHS Act 2004 in Victoria) and aligned to ISO 45001, ISO 9001 and ISO 14001.</li>
       <li>The whole library is reviewed against legislative change every 6 months.</li></ul>
       <h2 class="mt-lg">Buy or commission</h2>
-      <ul><li><strong>Buy standard documents:</strong> they ${formsWill()} ${formsName()}, bought outright or on subscription.</li>
+      <ul><li><strong>Buy standard documents:</strong> they ${formsWill()} ${formsName()}, bought outright and delivered as PDFs by email within 3 business days of your details being in.</li>
       <li><strong>Use them in the app:</strong> the documents for your trade or business come with a <a href="/app/">SiteGuard App</a> package, filled in with your details and pushed to you after each 6-monthly review. ${appWhen({ tag: "span" })}</li>
       <li><strong>Commission:</strong> custom SWMS, project-specific plans and management systems are <a href="/consulting/">consulting</a> work.</li></ul>
       <div class="btn-row"><a class="btn btn-hivis" href="/contact/">Commission a document</a></div></div>
@@ -784,12 +791,12 @@ ${partnersBody(TRUST, { source: "systems", endpoint: LEAD_ENDPOINT, brand: "Site
   if (MODE.app_status !== "live") {
     page({
       url: "/register-interest/", title: "Register interest: SiteGuard App and SiteGuard Audit", trail: [["/register-interest/", "Register interest"]],
-      description: "Register your interest in the SiteGuard App and SiteGuard Audit, and we'll tell you when founding places and the app open.",
+      description: "Register your interest in the SiteGuard App and SiteGuard Audit, and we'll tell you when they open.",
       body: `${head([["/register-interest/", "Register interest"]], "Register interest", "Tell us whether you're interested in the SiteGuard App, SiteGuard Audit or both, and we'll keep you posted.")}
 <section class="band"><div class="wrap cols">
   <div>${interestForm(ap.app)}</div>
   <div>${appWhen({ cls: "note status-line" })}<h2>What happens next</h2><ul>
-    <li>We'll tell you when founding places open and when the app opens.</li>
+    <li>We'll tell you when the app opens.</li>
 ${MODE.app_status === "presale" ? `    <li><a href="/app/founding-offer/">Founding places</a> are on sale now.</li>
 ` : ""}    <li>Questions now? <a href="/contact/">Send an enquiry</a>.</li></ul></div>
 </div></section>`,

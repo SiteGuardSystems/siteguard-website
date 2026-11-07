@@ -112,7 +112,7 @@ test("FORMS out of beta (checkout off): a link to the FORMS site; in beta: the b
   assert.match(pages.get("index.html"), /<nav[\s\S]*<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS<\/a>[\s\S]*<\/nav>/);
   assert.ok(!pages.has("forms/index.html"));
   const beta = builds.coming_soon.pages;
-  assert.match(beta.get("index.html"), /<nav[\s\S]*<a href="\/forms\/">SiteGuard FORMS \(beta\)<\/a>[\s\S]*<\/nav>/);
+  assert.match(beta.get("index.html"), /<nav[\s\S]*<a href="https:\/\/www\.siteguardforms\.com\.au\/">SiteGuard FORMS \(beta\)<\/a>[\s\S]*<\/nav>/);
   for (const [f, html] of beta) assert.ok(!/SiteGuard FORMS(:| \() ?coming soon/.test(html), f);
 });
 

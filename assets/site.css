@@ -507,3 +507,8 @@ main[data-module] .plan-states a[aria-current="page"] { background: var(--mod); 
   border-right: 1px solid var(--mod-line, var(--rule)); border-bottom: 1px solid var(--mod-line, var(--rule));
 }
 .plan-cross .status-line { display: inline-block; background: var(--paper); border-left: 4px solid var(--mod, var(--ink)); padding: 0.2rem 0.6rem; }
+
+/* FORMS switches (go-live 7 Nov 2026; shared shop.mjs): the hidden half of a switch pair stays hidden.
+   This site never shows the "on" half: FORMS subscriptions and consultant plans are off. */
+[data-switch][hidden] { display: none !important; }
+.delivery-line { margin: 0.6rem 0; }

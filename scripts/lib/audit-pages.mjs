@@ -31,6 +31,10 @@ export function auditPages(cl, ctx) {
   const seat = app?.audit ?? {};
   const prices = showAppPrices(mode) && seat.seat_month;
   const out = [];
+  // Only the launch-ready count is ever shown (launch_ready in
+  // data/audit-checklists.json, once the build list marks checklists ready),
+  // never the size of the build list. Until then: no count and no breakdown.
+  const ready = Number.isInteger(cl.launch_ready) && cl.launch_ready > 0 ? cl.launch_ready : null;
   out.push({
     url: "/audit/", title: "SiteGuard Audit: audits and inspections for consultants and businesses", trail: T, module: "audit",
     description: "SiteGuard Audit: run audits and inspections on site, with photos, findings, corrective actions and the report. Unlimited clients and audits for each auditor.",
@@ -52,7 +56,7 @@ export function auditPages(cl, ctx) {
 </div></section>
 <section class="band band-grey"><div class="wrap">
   <h2><a href="/audit/checklists/">The checklist library</a></h2>
-  <p class="lede">${n(cl.checklists)} checklists, built from SiteGuard's controlled forms and kept in step with them: a check for every SWMS (${n(cl.by_type["SWMS checks (one for every SWMS in the library)"] ?? 0)}) and every ITP (${n(cl.by_type["ITP hold and witness point checks (one for every ITP)"] ?? 0)}), and inspections, verifications, assessments and audits across safety, quality, environment and management systems.</p>
+  <p class="lede">${ready ? `${n(ready)} checklists ready, ` : "Checklists "}built from SiteGuard's controlled forms and kept in step with them: checks for SWMS and ITPs, and inspections, verifications, assessments and audits across safety, quality, environment and management systems.</p>
   <p><a class="btn" href="/audit/checklists/">See the checklist library</a></p>
 </div></section>
 ${related("audit")}
@@ -67,15 +71,15 @@ ${related("audit")}
   const table = (title, obj, col) => `<div><h2>${title}</h2><table class="doc-table"><thead><tr><th scope="col">${col}</th><th scope="col">Checklists</th></tr></thead><tbody>${Object.entries(obj).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${n(v)}</td></tr>`).join("")}</tbody></table></div>`;
   out.push({
     url: "/audit/checklists/", title: "SiteGuard Audit checklist library", trail: TCk, module: "audit",
-    description: `The SiteGuard Audit checklist library: ${n(cl.checklists)} checklists, including a check for every SWMS and ITP in SiteGuard's controlled library.`,
-    body: `${head(TCk, "Checklist library", `${n(cl.checklists)} checklists, built from SiteGuard's controlled forms.`, "audit")}
+    description: "The SiteGuard Audit checklist library: checklists built from SiteGuard's controlled forms, SWMS and ITPs.",
+    body: `${head(TCk, "Checklist library", `${ready ? `${n(ready)} checklists ready, built` : "Checklists built"} from SiteGuard's controlled forms.`, "audit")}
 <section class="band"><div class="wrap">
   ${when({ cls: "note status-line" })}
-  <div class="cols">${table("By type", cl.by_type, "Type")}${table("By area", cl.by_area, "Area")}</div>
+  ${ready && cl.ready_by_type ? `<div class="cols">${table("By type", cl.ready_by_type, "Type")}${cl.ready_by_area ? table("By area", cl.ready_by_area, "Area") : ""}</div>` : ""}
   <h2 class="mt-lg">How checklists are made and kept</h2>
   <ul><li>Each checklist is drawn from a controlled SiteGuard form, SWMS or ITP, and is reviewed before it is offered to subscribers.</li>
   <li>When a form is revised at the 6-monthly review, its checklist gets a new version; inspections already started keep theirs.</li>
-  <li>Checklists are added in stages through 2027, starting with site safety, quality and environmental inspections.</li>
+  <li>Checklists are added in stages, starting with site safety, quality and environmental inspections.</li>
   <li>Checklists for work that must be done by a registered or licensed practitioner say so on the report. They are a recording tool and don't replace the practitioner.</li></ul>
   <div class="btn-row">${buy("audit")}</div>
 </div></section>`,
