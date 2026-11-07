@@ -59,7 +59,7 @@ ${related("audit")}
 <section class="band band-ink"><div class="wrap">
   <h2>${mode.app_status === "live" ? "Start auditing with SiteGuard Audit" : "Be first on SiteGuard Audit"}</h2>
   ${when({ cls: "lede status-line" })}
-  <div class="btn-row">${buy("audit")}<a class="btn btn-inv" href="/consulting/audits-and-inspections/">Have us do the audit</a></div>
+  <div class="btn-row">${buy("audit")}<a class="btn btn-inv" href="/consulting/internal-audit-support/">Have us do the audit</a></div>
 </div></section>`,
   });
 

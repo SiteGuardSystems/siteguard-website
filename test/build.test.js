@@ -24,9 +24,9 @@ const get = (f) => pages.find((p) => p.f === f)?.html ?? assert.fail(`missing ${
 
 test("the brief's pages exist", () => {
   const have = new Set(pages.map((p) => p.f));
-  for (const p of ["index.html", "consulting/index.html", "consulting/subcontractors/index.html", "consulting/builders/index.html",
-    "consulting/iso-ims/index.html", "consulting/leadership-advisory/index.html", "consulting/audits-and-inspections/index.html",
-    "consulting/retainers/index.html", "consulting/ims-tier-1-uplift/index.html", "library/index.html", "about/index.html",
+  for (const p of ["index.html", "consulting/index.html", "consulting/ims-design-implementation/index.html", "consulting/gap-analysis/index.html",
+    "consulting/internal-audit-support/index.html", "consulting/workplace-inspections/index.html", "consulting/custom-swms/index.html",
+    "consulting/incident-investigation/index.html", "consulting/advisory-retainers/index.html", "library/index.html", "about/index.html",
     "contact/index.html", "partners/index.html", "legal/disclaimer/index.html", "legal/privacy/index.html", "404.html",
     "app/index.html", "app/trade-packages/index.html", "app/builder-bundles/index.html", "app/safety/index.html", "app/quality/index.html",
     "app/environmental/index.html", "app/management/index.html", "audit/index.html", "audit/checklists/index.html", "register-interest/index.html", "planning/index.html", "education/index.html"]) assert.ok(have.has(p), p);
@@ -134,12 +134,10 @@ test("custom content on request (Q-ED3): under Consulting and Education, enquiry
   assert.ok(edu.includes('href="/consulting/custom-content/"'), "linked from Education");
 });
 
-test("consulting: retainers at A$1,200 a month +GST and the IMS / Tier 1 uplift; about and library listed under Consulting", () => {
-  assert.match(get("consulting/retainers/index.html"), /A\$1,200 a month \+GST/);
-  assert.match(get("consulting/ims-tier-1-uplift/index.html"), /<h1>IMS and Tier 1 uplift<\/h1>/);
+test("consulting: about and library listed under Consulting", () => {
   const idx = get("consulting/index.html");
-  for (const h of ["/about/", "/library/", "/consulting/audits-and-inspections/", "/consulting/retainers/"]) assert.ok(idx.includes(`href="${h}"`), h);
-  for (const f of ["about/index.html", "library/index.html", "consulting/retainers/index.html"]) assert.match(get(f), /<a href="\/consulting\/" aria-current="page">Consulting<\/a>/, f);
+  for (const h of ["/about/", "/library/", "/consulting/internal-audit-support/", "/consulting/advisory-retainers/"]) assert.ok(idx.includes(`href="${h}"`), h);
+  for (const f of ["about/index.html", "library/index.html", "consulting/advisory-retainers/index.html"]) assert.match(get(f), /<a href="\/consulting\/" aria-current="page">Consulting<\/a>/, f);
   assert.match(get("library/index.html"), /Buy or commission[\s\S]*SiteGuard App[\s\S]*consulting/);
 });
 

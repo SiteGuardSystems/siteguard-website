@@ -33,7 +33,8 @@
         status.className = "form-status err"; status.textContent = needRequired ? "Add your name, email and what you need." : "Add your name and email."; return;
       }
       var data = { source: "systems", name: f.name.value, email: f.email.value, company: val(f, "company"),
-        phone: val(f, "phone"), need: val(f, "need"), website: val(f, "website"),
+        // A consulting service page names its service at the start of "need".
+        phone: val(f, "phone"), need: (val(f, "service") ? "[" + val(f, "service") + "] " : "") + val(f, "need"), website: val(f, "website"),
         enquiry_type: val(f, "enquiry_type") || "enquiry", ref: ref,
         partner_url: val(f, "partner_url"), partner_kind: val(f, "partner_kind") };
       // Register interest (enquiry_type app-interest): interest, trade and the consent basis.
