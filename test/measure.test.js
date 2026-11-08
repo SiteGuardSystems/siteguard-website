@@ -48,11 +48,24 @@ test("a malformed token adds nothing and is reported", () => {
   }
 });
 
+test("M3 Search Console: the verification meta tag, and no CSP change", () => {
+  const code = "AbCdEf-123_xyz0987654321AbCdEfGhIjKlMnOpQr";
+  const m = loadMeasure({ GOOGLE_SITE_VERIFICATION: ` ${code} ` });
+  assert.equal(measureHead(m), `<meta name="google-site-verification" content="${code}">\n`);
+  assert.equal(measureCsp(BASE_CSP, m), BASE_CSP);
+  for (const bad of ['<meta name="google-site-verification" content="abc">', "short", "has space in it here"]) {
+    const b = loadMeasure({ GOOGLE_SITE_VERIFICATION: bad });
+    assert.equal(b.gscVerify, null, bad);
+    assert.match(b.problems[0], /GOOGLE_SITE_VERIFICATION/);
+  }
+});
+
 test("built with the setting: the beacon is on every page and in _headers", async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "measure-"));
-  await run(process.execPath, [path.join(ROOT, "build.mjs")], { cwd: ROOT, env: { ...process.env, DIST_DIR: dir, CF_WEB_ANALYTICS_TOKEN: TOKEN } });
+  await run(process.execPath, [path.join(ROOT, "build.mjs")], { cwd: ROOT, env: { ...process.env, DIST_DIR: dir, CF_WEB_ANALYTICS_TOKEN: TOKEN, GOOGLE_SITE_VERIFICATION: "TestVerificationCode_0123" } });
   for (const f of ["index.html", "contact/index.html", "legal/privacy/index.html"])
     assert.match(await readFile(path.join(dir, f), "utf8"), /beacon\.min\.js" data-cf-beacon=/, f);
+  assert.match(await readFile(path.join(dir, "index.html"), "utf8"), /<meta name="google-site-verification" content="TestVerificationCode_0123">/);
   const h = await readFile(path.join(dir, "_headers"), "utf8");
   assert.match(h, /script-src 'self'[^;]* https:\/\/static\.cloudflareinsights\.com/);
   assert.match(h, /connect-src [^;]*https:\/\/cloudflareinsights\.com/);
