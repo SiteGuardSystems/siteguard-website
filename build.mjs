@@ -26,7 +26,7 @@ import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBod
 import { loadSiteMode, shopOn, shopShown, statusCopy, appStatusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages, appProductId } from "./scripts/lib/app-pages.mjs";
 import { loadSupportChat, supportChatWidget, supportChatConnect } from "./scripts/lib/support-chat.mjs";
-import { loadMeasure, measureHead, measureCsp } from "./scripts/lib/measure.mjs";
+import { loadMeasure, measureHead, measureCsp, gtagInitScript } from "./scripts/lib/measure.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
 // The FORMS shop and the cart (WP-S8): the same files as SiteGuard-Forms-Storefront.
@@ -1014,6 +1014,8 @@ async function main() {
   const engine = shopOn(MODE) || appCheckoutOn(MODE) ? new URL(CHECKOUT_ENGINE).origin : null;
   const connectSrc = [...new Set(["'self'", connect, ...supportChatConnect(CHAT), ...(engine ? [engine] : [])])].join(" ");
   const formAction = [...new Set(["'self'", connect, ...(engine ? [engine, STRIPE_CHECKOUT] : [])])].join(" ");
+  const gtagInit = gtagInitScript(MEASURE);
+  if (gtagInit) await writeFile(path.join(DIST, "assets/gtag-init.js"), gtagInit);
   await writeFile(path.join(DIST, "_headers"), `/*
   Content-Security-Policy: ${measureCsp(withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ${connectSrc}; form-action ${formAction}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU)), MEASURE)}
   Strict-Transport-Security: max-age=31536000; includeSubDomains

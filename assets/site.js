@@ -50,7 +50,10 @@
       fetch(f.getAttribute("data-endpoint"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
         .then(function (res) {
-          if (res.ok) { f.reset(); status.className = "form-status ok"; status.textContent = data.enquiry_type === "app-interest" ? "Thanks. You're registered, and we'll be in touch." : "Sent. We'll reply within one business day."; }
+          if (res.ok) {
+            // M9: the Google tag's conversion (assets/gtag-init.js, only when GOOGLE_ADS_TAG is on).
+            try { document.dispatchEvent(new CustomEvent("sg:lead-sent", { detail: { kind: val(f, "service") ? "call" : "enquiry" } })); } catch (e) {}
+            f.reset(); status.className = "form-status ok"; status.textContent = data.enquiry_type === "app-interest" ? "Thanks. You're registered, and we'll be in touch." : "Sent. We'll reply within one business day."; }
           else { status.className = "form-status err"; status.textContent = (res.body && res.body.reason) || "Your enquiry didn't send. Try again, or email hello@siteguardsystems.com.au."; }
         })
         .catch(function () { status.className = "form-status err"; status.textContent = "Your enquiry didn't send. Email hello@siteguardsystems.com.au instead."; });
