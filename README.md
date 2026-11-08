@@ -15,6 +15,7 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | Help chat (P11) | the "Questions?" widget on every page (`scripts/lib/support-chat.mjs`, `assets/support-chat.js`). The assistant runs on the SiteGuard app API (siteguard-audit `POST /api/support/public/chat`), never on this site. Until `data/support-chat.json` `api_base` (or `SUPPORT_CHAT_API_BASE`) is set it shows the support email only, and the CSP is unchanged |
 | Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
 | Google review link and rating | `data/google-reviews.json`, same way |
+| Unsubscribe page `/u/<token>` (U1, B7) | `functions/u/[token].js`, a Pages Function writing to D1 (`UNSUB_DB`, table in `migrations/0001_unsubscribes.sql`). Off until the secret and binding are set: `docs/UNSUBSCRIBE_SETUP.md` |
 
 ## Status switch (`data/site-mode.json`)
 
