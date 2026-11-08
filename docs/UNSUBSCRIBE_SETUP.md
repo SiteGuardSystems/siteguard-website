@@ -45,8 +45,10 @@ unsubscribed someone.
    collector sets `collected_at`. Put it in `agent.env` under the name in siteguard-ai's
    `agent.env.example`. Cloudflare can't scope a token to one database, so the collector's code
    only touches `unsubscribes`.
-8. **Then** set `SITEGUARD_UNSUBSCRIBE_BASE_URL=https://siteguardsystems.com.au/u/` in agent.env
-   (siteguard-ai). Outreach refuses to send until the base URL is set.
+8. **Then** set `SITEGUARD_UNSUBSCRIBE_BASE_URL=https://www.siteguardsystems.com.au` in agent.env
+   (siteguard-ai). Outreach refuses to send until the base URL is set. Use the site origin
+   **without** `/u/`: `unsubscribe_url()` adds `/u/<token>` itself, so the queue's
+   `.../u/` value would make `/u/u/<token>`, which 404s.
 
 There's no `wrangler.toml` in this repo on purpose: with one, the Pages project would take its
 bindings from the file instead of the dashboard.
