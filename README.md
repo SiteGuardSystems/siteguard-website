@@ -15,6 +15,7 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | Help chat (P11) | the "Questions?" widget on every page (`scripts/lib/support-chat.mjs`, `assets/support-chat.js`). The assistant runs on the SiteGuard app API (siteguard-audit `POST /api/support/public/chat`), never on this site. Until `data/support-chat.json` `api_base` (or `SUPPORT_CHAT_API_BASE`) is set it shows the support email only, and the CSP is unchanged |
 | Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
 | Google review link and rating | `data/google-reviews.json`, same way |
+| Campaign counts (M2) | `functions/_middleware.js` counts utm landings per day into D1 (`METRICS_DB`, `migrations/0002_campaign_counts.sql`), with no IP and no cookie. `GET /internal/metrics/campaigns` serves the Console (service-token hash `CAMPAIGN_METRICS_TOKEN_SHA256`). Off until bound: `docs/CAMPAIGN_COUNTS_SETUP.md` |
 
 ## Status switch (`data/site-mode.json`)
 
