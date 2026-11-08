@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { wordingHits, REDIRECTS, CREDENTIAL } from "../build.mjs";
+import { wordingHits, REDIRECTS, CREDENTIAL, formsRedirects } from "../build.mjs";
 import { loadSiteMode } from "../scripts/lib/site-mode.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -104,7 +104,7 @@ test("menu: Consulting, SiteGuard App, SiteGuard Audit, Education, Planner, Form
 
 test("_redirects: every rule is a 301 to a built page", async () => {
   const r = await readFile(path.join(DIST, "_redirects"), "utf8");
-  const lines = r.trim().split("\n");
+  const lines = r.trim().split("\n").filter((l) => !/^\/forms(\/\*)? /.test(l)); // S25: off-site, tested below
   assert.equal(lines.length, REDIRECTS.length);
   const have = new Set(pages.map((p) => "/" + p.f.replace(/index\.html$/, "")));
   for (const line of lines) {
@@ -184,4 +184,16 @@ test("Register interest: posts to /api/lead as app-interest with App / Audit / b
   assert.ok(html.includes(`name="consent_wording" value="${CONSENT_WORDING}"`));
   assert.ok(html.includes(`<input type="checkbox" name="consent" value="yes">${CONSENT_WORDING}</label>`));
   assert.match(html, /name="website"/); // honeypot
+});
+
+test("S25: while FORMS is browse only, /forms and /forms/* go to the same path on the storefront", async () => {
+  const r = await readFile(path.join(DIST, "_redirects"), "utf8");
+  const browse = MODE.beta;
+  for (const [from, to] of formsRedirects()) {
+    const line = `${from} ${to} 301`;
+    if (browse) assert.ok(r.split("\n").includes(line), line);
+    else assert.ok(!r.includes(line), line);
+  }
+  assert.deepEqual(formsRedirects("https://www.siteguardforms.com.au"),
+    [["/forms", "https://www.siteguardforms.com.au/"], ["/forms/*", "https://www.siteguardforms.com.au/:splat"]]);
 });
