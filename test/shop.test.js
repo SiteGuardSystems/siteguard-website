@@ -161,3 +161,10 @@ test("WP-S12: no inline script or style on the shop and cart pages; prices say +
   }
   assert.match(await read(on, "forms/builder-packs/index.html"), /<small> \+GST<\/small>/);
 });
+
+test("S20: the subscriptions page promises email, not an account (no account while S4 is off)", async () => {
+  const src = await (await import("node:fs/promises")).readFile(new URL("../scripts/lib/shop.mjs", import.meta.url), "utf8");
+  assert.ok(!/pushed to your account|from your account/.test(src));
+  assert.match(src, /emailed to you after each 6-monthly review/);
+  assert.match(src, /To cancel, email support@siteguardsystems\.com\.au at any time/);
+});
