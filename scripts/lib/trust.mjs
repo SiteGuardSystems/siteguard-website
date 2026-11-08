@@ -6,16 +6,19 @@
 //   data/partners.json        partners and affiliates. Written by the CRM
 //                             (siteguard-ai: `python -m siteguard_org partners
 //                             export-sites`) or edited by hand.
-//   data/google-reviews.json  the Google Business Profile link, and the rating
-//                             and review count as Google shows them.
+//   data/google-reviews.json  the Google Business Profile links (siteguard-ai #72:
+//                             place_id, profile_url, review_url, write_review_url).
 // Styles: the "partners, affiliates and Google reviews" block in each site's
 // stylesheet.
 //
 // Nothing renders until there is something real to show: no partner section
-// without a partner, no review badge without a Google profile, and no star
-// rating without a rating, a count and the date it was read. Ratings are never
-// typed in by guesswork; they come from the profile (by hand today, by the
-// Business Profile API later).
+// without a partner, and no Google link without a Google profile.
+//
+// Google reviews: links only (Dan, 8 Nov 2026, decision N3). The sites show
+// "See our reviews on Google" (the profile) and "Leave us a review", never a
+// rating, a review count or review text: a typed-in number goes stale and
+// can't be checked here, and a chosen set of reviews risks misleading under
+// the Australian Consumer Law. Rating fields in the data are ignored.
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { esc } from "./md.mjs";
@@ -33,7 +36,7 @@ export const FEES = {
 export const REF_RE = /^[A-Za-z0-9][A-Za-z0-9-]{1,23}$/;
 const LOGO_RE = /^\/assets\/partners\/[a-z0-9][a-z0-9-]*\.(png|svg|webp|jpg)$/;
 const PLACE_ID_RE = /^[A-Za-z0-9_-]{10,}$/;
-const MAX_REVIEW_AGE_DAYS = 120;
+const GOOGLE_URL_RE = /^https:\/\/(www\.)?(google\.[a-z.]+|share\.google|g\.page|maps\.app\.goo\.gl|search\.google\.com)\//;
 
 /** Read and check the data for one site. `sample` reads the *.sample.json
  *  files instead, for a preview build only (a production build refuses it). */
@@ -73,21 +76,16 @@ export async function loadTrust(root, site, { sample = false } = {}) {
 
   const r = reviews ?? {};
   if (r.place_id && !PLACE_ID_RE.test(r.place_id)) problems.push("google-reviews.json: place_id doesn't look like a Google Place ID");
-  for (const k of ["profile_url", "review_url"]) {
-    if (r[k] && !/^https:\/\/(www\.)?(google\.[a-z.]+|g\.page|maps\.app\.goo\.gl|search\.google\.com)\//.test(r[k])) problems.push(`google-reviews.json: ${k} must be a Google address`);
+  for (const k of ["profile_url", "review_url", "write_review_url"]) {
+    if (r[k] && !GOOGLE_URL_RE.test(r[k])) problems.push(`google-reviews.json: ${k} must be a Google address`);
   }
-  const hasRating = r.rating != null || r.count != null;
-  if (hasRating) {
-    if (!(typeof r.rating === "number" && r.rating >= 1 && r.rating <= 5)) problems.push("google-reviews.json: rating must be a number from 1 to 5");
-    if (!(Number.isInteger(r.count) && r.count >= 1)) problems.push("google-reviews.json: count must be a whole number of reviews");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.as_of ?? "")) problems.push("google-reviews.json: as_of (the date the rating was read off the profile) is required with a rating");
-    else if ((Date.now() - Date.parse(r.as_of)) / 86_400_000 > MAX_REVIEW_AGE_DAYS) problems.push(`google-reviews.json: the rating is more than ${MAX_REVIEW_AGE_DAYS} days old; re-read it from the profile (open item)`);
-  }
+  if (["rating", "count", "as_of", "reviews"].some((k) => r[k] != null && r[k] !== "" && !(Array.isArray(r[k]) && !r[k].length)))
+    problems.push("google-reviews.json: rating, count, as_of and reviews aren't shown (links only, decision N3); remove them (open item)");
   return { site, partners, reviews: r, problems, sample };
 }
 
 const rel = (p) => (p.fee && p.fee !== "none" ? "sponsored noopener" : "noopener");
-const reviewHref = (r) => r.review_url || (r.place_id ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(r.place_id)}` : "");
+const reviewHref = (r) => r.review_url || r.write_review_url || (r.place_id ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(r.place_id)}` : "");
 const profileHref = (r) => r.profile_url || (r.place_id ? `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(r.place_id)}` : "");
 
 function logoOrName(p) {
@@ -107,26 +105,18 @@ export function partnerStrip(t) {
 </div></section>`;
 }
 
-/** "Review us on Google", with the rating when one has been read off the
- *  profile. Empty until the Google Business Profile exists. */
+/** "See our reviews on Google" (the profile) and "Leave us a review" (the
+ *  review link). Links only: never a rating, a count or review text (N3).
+ *  Empty until the Google Business Profile exists. */
 export function reviewBadge(t, { compact = false } = {}) {
   const r = t.reviews ?? {};
   const write = reviewHref(r);
   const profile = profileHref(r);
   if (!write && !profile) return "";
-  const rated = typeof r.rating === "number" && Number.isInteger(r.count) && r.as_of;
-  const stars = rated ? `<span class="review-stars" aria-hidden="true">${"★".repeat(Math.round(r.rating))}${"☆".repeat(5 - Math.round(r.rating))}</span>` : "";
-  const summary = rated
-    ? `<a class="review-badge" href="${esc(profile || write)}" rel="noopener">${stars}<span><b>${r.rating.toFixed(1)}</b> on Google · ${r.count} review${r.count === 1 ? "" : "s"}</span></a>`
-    : "";
-  const ask = write ? `<a class="review-link" href="${esc(write)}" rel="noopener">Review us on Google</a>` : "";
-  if (compact) return `<div class="review-compact">${summary || ask}</div>`;
-  return `<div class="review-block">${summary}${ask}${rated ? `<p class="small">Rating as shown on our Google Business Profile on ${esc(fmtDate(r.as_of))}.</p>` : ""}</div>`;
-}
-
-function fmtDate(iso) {
-  const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const see = profile ? `<a class="review-badge" href="${esc(profile)}" rel="noopener">See our reviews on Google</a>` : "";
+  const ask = write ? `<a class="review-link" href="${esc(write)}" rel="noopener">Leave us a review</a>` : "";
+  if (compact) return `<div class="review-compact">${see || ask}</div>`;
+  return `<div class="review-block">${see}${ask}</div>`;
 }
 
 function partnerCards(list) {

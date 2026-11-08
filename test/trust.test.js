@@ -1,7 +1,7 @@
 // Partners, affiliates and the Google review link (scripts/lib/trust.mjs).
 // The same file and the same tests live in SiteGuard-Forms-Storefront.
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -66,25 +66,35 @@ test("text is escaped", async () => {
   assert.match(body, /a &amp; b/);
 });
 
-test("review badge: link only until there is a dated rating", async () => {
+test("Google reviews: links only, never a rating, a count or review text (decision N3)", async () => {
   let t = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop" }), "systems");
   let b = reviewBadge(t);
-  assert.match(b, /Review us on Google/);
+  assert.match(b, /See our reviews on Google/);
+  assert.match(b, /google\.com\/maps\/place\/\?q=place_id:ChIJabcdefghijklmnop/);
+  assert.match(b, /Leave us a review/);
   assert.match(b, /search\.google\.com\/local\/writereview\?placeid=ChIJabcdefghijklmnop/);
-  assert.ok(!/★/.test(b));
-  t = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop", rating: 4.8, count: 12, as_of: today }), "systems");
+  t = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop", profile_url: "https://maps.app.goo.gl/AbCdEf",
+    review_url: "https://share.google/AbCdEfGh", rating: 4.8, count: 12, as_of: today, reviews: [{ text: "Great" }] }), "systems");
   b = reviewBadge(t);
-  assert.match(b, /<b>4\.8<\/b> on Google · 12 reviews/);
-  assert.match(b, /★★★★★/);
-  assert.match(b, /Rating as shown on our Google Business Profile on/);
+  assert.match(b, /href="https:\/\/maps\.app\.goo\.gl\/AbCdEf"[^>]*>See our reviews on Google/);
+  assert.match(b, /href="https:\/\/share\.google\/AbCdEfGh"[^>]*>Leave us a review/);
+  for (const shown of ["4.8", "12 review", "★", "Great", "Rating as shown"]) assert.ok(!b.includes(shown), shown);
+  assert.match(t.problems.join(" | "), /rating, count, as_of and reviews aren't shown.*open item/);
+  assert.match(reviewBadge(t, { compact: true }), /^<div class="review-compact"><a class="review-badge" href="https:\/\/maps\.app\.goo\.gl\/AbCdEf"/);
 });
 
-test("a rating without a count or a date is refused", async () => {
-  const t = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop", rating: 5 }), "systems");
-  assert.match(t.problems.join("\n"), /count must be/);
-  assert.match(t.problems.join("\n"), /as_of/);
-  const old = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop", rating: 4.5, count: 3, as_of: "2025-01-01" }), "systems");
-  assert.match(old.problems.join("\n"), /more than 120 days old.*open item/);
+test("the export's write-a-review link is used when there is no review link", async () => {
+  const t = await loadTrust(await fixture([], { write_review_url: "https://search.google.com/local/writereview?placeid=ChIJabcdefghijklmnop" }), "systems");
+  assert.deepEqual(t.problems, []);
+  assert.match(reviewBadge(t), /writereview\?placeid=ChIJabcdefghijklmnop" rel="noopener">Leave us a review/);
+  assert.ok(!/See our reviews/.test(reviewBadge(t)));
+});
+
+test("the committed data and sample carry links only", async () => {
+  for (const f of ["google-reviews.json", "google-reviews.sample.json"]) {
+    const j = JSON.parse(await readFile(new URL(`../data/${f}`, import.meta.url), "utf8"));
+    for (const k of ["rating", "count", "as_of", "reviews"]) assert.ok(!(k in j), `${f}: ${k}`);
+  }
 });
 
 test("review links must point at Google", async () => {
