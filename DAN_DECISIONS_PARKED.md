@@ -17,3 +17,10 @@ in `DAN_DECISIONS_PENDING.md`.
 | P9 | W7 (S25): `/forms/*` redirect | While FORMS is browse only (beta), `/forms` and `/forms/*` 301 to the same path on siteguardforms.com.au. The redirect lifts itself when the shop opens here. OK? | Yes |
 | P10 | W8: privacy contact | Privacy requests: the N1 support@ address, or keep hello@? | support@ (N1) |
 | P11 | W7 skipped items | **S22** (video titles): there's no `product-videos.json` on this site, so it's the storefront's. **S23** (`consent_basis`): `/api/lead` lives on the storefront. **S24** (footer "Subscriber sign in"): there's no such link on this site. Nothing to do here; confirm the storefront session has them | Storefront S3 |
+
+## Overnight run 10–11 Nov 2026 (Rev09 W9–W12)
+
+| # | Item | What's needed from Dan | Recommended default (used) |
+|---|---|---|---|
+| P12 | W10: enquiry utm only while counts are on | #45 sent three utm values with every enquiry (`sg_utm`) whether or not campaign counts were on. W10 (#55) replaces that: the six attribution fields go with an enquiry only while `METRICS_DB` is bound (the website's campaign-counts switch). Until then, no utm goes to `/api/lead`. OK? | Yes: off until counts are on |
+| P13 | W10: how the page knows counts are on | The browser can't see the `METRICS_DB` binding, so the middleware marks each HTML page `<body data-attribution="1">` while it is bound (Cloudflare HTMLRewriter, on every page view). OK, or use a build-time flag in `data/site-mode.json` instead? | The binding (one switch, no rebuild) |
