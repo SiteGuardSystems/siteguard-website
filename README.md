@@ -17,6 +17,16 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
 | Google review link and rating | `data/google-reviews.json`, same way |
 
+## Measurement tags (`scripts/lib/measure.mjs`)
+
+Each tag is **off** until its build setting is set in the Pages project: Settings > Variables and Secrets > Add, type **Text**, for Production. A new deployment picks it up. With nothing set, no tag is added and the CSP is unchanged. None of these values is secret: each one ends up in the public page.
+
+| Setting | What | CSP opened |
+|---|---|---|
+| `CF_WEB_ANALYTICS_TOKEN` | M1: the Cloudflare Web Analytics beacon, which is cookie-less. The value is the 32-hex token in the site's Web Analytics snippet (Analytics & Logs > Web Analytics > Add a site > `siteguardsystems.com.au` > Manage site). A malformed value adds nothing and is listed in the build output | `script-src https://static.cloudflareinsights.com`, `connect-src https://cloudflareinsights.com` |
+
+Not on the `/u/<token>` unsubscribe page, which is a Function with its own headers.
+
 ## Status switch (`data/site-mode.json`)
 
 `app_status` for the SiteGuard App and SiteGuard Audit, and `checkout` (`scripts/lib/site-mode.mjs`). FORMS `beta` is **not** in this file.

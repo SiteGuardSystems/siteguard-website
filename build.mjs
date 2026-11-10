@@ -26,6 +26,7 @@ import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBod
 import { loadSiteMode, shopOn, shopShown, statusCopy, appStatusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages, appProductId } from "./scripts/lib/app-pages.mjs";
 import { loadSupportChat, supportChatWidget, supportChatConnect } from "./scripts/lib/support-chat.mjs";
+import { loadMeasure, measureHead, measureCsp } from "./scripts/lib/measure.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
 // The FORMS shop and the cart (WP-S8): the same files as SiteGuard-Forms-Storefront.
@@ -54,6 +55,8 @@ let PLANNING = { cal: null, insp: null };
 let EDU = null;
 // Help chat (data/support-chat.json; scripts/lib/support-chat.mjs). P11.
 let CHAT = { base: "", endpoint: "" };
+// Measurement tags from the Pages build settings (scripts/lib/measure.mjs); all off when unset.
+let MEASURE = loadMeasure({});
 const ORIGIN = (process.env.SITE_ORIGIN ?? "https://www.siteguardsystems.com.au").replace(/\/$/, "");
 const FORMS = (process.env.FORMS_URL ?? "https://www.siteguardforms.com.au").replace(/\/$/, "");
 const FORMS_APP = (process.env.FORMS_APP_URL ?? "https://app.siteguardforms.com.au").replace(/\/$/, "");
@@ -360,7 +363,7 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta prop
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n")}
 <script src="/assets/site.js" defer></script>
 ${/data-app-checkout|data-founding-cancel/.test(body) ? '<script src="/assets/app-checkout.js" defer></script>\n' : ""}${cartEnabled() || (browseOnly() && url.startsWith(SHOP_BASE + "/")) ? '<script src="/assets/cart.js" defer></script>\n' : ""}<script src="/assets/support-chat.js" defer></script>
-</head>
+${measureHead(MEASURE)}</head>
 <body${preview ? ' data-preview="1"' : ""}${MODE.beta ? ' data-beta="1"' : ""}${browseOnly() ? ' data-browse-only="1"' : ""}>
 ${preview ? '<div class="preview-bar" role="note"><strong>Preview build.</strong> This shows every package for review, including packages not yet released for sale. Checkout is switched off.</div>\n' : ""}
 ${header(url)}
@@ -547,6 +550,8 @@ async function build() {
   if (MODE.app_status === "presale" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(LAUNCH.opens ?? "")) problems.push("data: app-packages.json launch.opens (YYYY-MM) is needed while app_status is presale");
   TRUST = await loadTrust(ROOT, "systems", { sample: SAMPLE_PARTNERS });
   CHAT = await loadSupportChat(ROOT);
+  MEASURE = loadMeasure(process.env);
+  for (const p of MEASURE.problems) problems.push(`settings: ${p}`);
   for (const p of TRUST.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
   if (SAMPLE_PARTNERS) problems.push(`data: built with SAMPLE partners and reviews (--sample-partners)${PRODUCTION ? "; a production build can't use sample data" : " (open item: preview only)"}`);
   const vid = await loadVideo(ROOT);
@@ -1010,7 +1015,7 @@ async function main() {
   const connectSrc = [...new Set(["'self'", connect, ...supportChatConnect(CHAT), ...(engine ? [engine] : [])])].join(" ");
   const formAction = [...new Set(["'self'", connect, ...(engine ? [engine, STRIPE_CHECKOUT] : [])])].join(" ");
   await writeFile(path.join(DIST, "_headers"), `/*
-  Content-Security-Policy: ${withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ${connectSrc}; form-action ${formAction}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU))}
+  Content-Security-Policy: ${measureCsp(withCspSources(withVideoCsp(`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ${connectSrc}; form-action ${formAction}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'`, VIDEO), educationCsp(EDU)), MEASURE)}
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
