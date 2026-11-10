@@ -712,6 +712,8 @@ ${XAUDIT}${CTA}`,
 <section class="band"><div class="wrap"><div class="btn-row"><a class="btn btn-hivis" href="/contact/">Book a call</a><a class="btn" href="mailto:${EMAIL}">${EMAIL}</a></div>
   <div class="register mt">${Object.entries(SERVICES).map(([slug, s]) =>
   `<div class="register-row"><div><h3><a href="/consulting/${slug}/">${esc(s.title)}</a></h3><p>${esc(s.lede)}</p></div><span></span><a class="btn btn-small" href="/consulting/${slug}/">More</a></div>`).join("")}</div>
+  <div class="note mt-lg"><p><strong>Daniel Silver</strong>, founder and principal HSEQ consultant: ${esc(CREDENTIAL)}.</p>
+    <p class="small">Personal training certificates. They do not mean SiteGuard's products are approved by any certification or standards body.</p></div>
   <h2 class="mt-lg">Also under Consulting</h2>
   <div class="doors"><div class="door"><h3><a href="/about/">About Daniel Silver</a></h3><p>27 years in Australian construction, and the training behind the work.</p></div>
   <div class="door"><h3><a href="/library/">Document library</a></h3><p>The controlled documents behind every engagement, by trade and discipline.</p></div></div></div></section>

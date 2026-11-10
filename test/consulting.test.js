@@ -83,3 +83,10 @@ test("the enquiry script names the service at the start of the message", async (
   const js = await readFile(path.join(ROOT, "assets/site.js"), "utf8");
   assert.ok(js.includes('need: (val(f, "service") ? "[" + val(f, "service") + "] " : "") + val(f, "need")'));
 });
+
+test("S27: /consulting/ shows the 2 Nov credential line, word for word, with its disclaimer", async () => {
+  const html = await read("consulting/index.html");
+  assert.ok(html.includes(CREDENTIAL));
+  assert.match(html, /Personal training certificates\. They do not mean SiteGuard's products are approved/);
+  assert.ok(!/Certified Lead Auditor/i.test(html));
+});
