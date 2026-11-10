@@ -16,7 +16,7 @@ footer onto every page and writes `dist/`, with Cloudflare Pages
 | Help chat (P11) | the "Questions?" widget on every page (`scripts/lib/support-chat.mjs`, `assets/support-chat.js`). The assistant runs on the SiteGuard app API (siteguard-audit `POST /api/support/public/chat`), never on this site. Until `data/support-chat.json` `api_base` (or `SUPPORT_CHAT_API_BASE`) is set it shows the support email only, and the CSP is unchanged |
 | Unsubscribe page `/u/<token>` (U1, B7) | `functions/u/[token].js`, a Pages Function writing to D1 (`UNSUB_DB`, table in `migrations/0001_unsubscribes.sql`). Off until the secret and binding are set: `docs/UNSUBSCRIBE_SETUP.md` |
 | Partners and affiliates | `data/partners.json`, written by the CRM (siteguard-ai `python -m siteguard_org partners export-sites`) or edited by hand |
-| Google review link and rating | `data/google-reviews.json`, same way |
+| Google review links | `data/google-reviews.json`, same way (links only, no rating: decision N3) |
 
 ## Measurement tags (`scripts/lib/measure.mjs`)
 
@@ -83,7 +83,7 @@ The same check as SiteGuard-Forms-Storefront (its README has the detail). This r
 - **`/partners/`**: partners and affiliates, how referrals and referral fees work, and a partner enquiry form. The form posts to `/api/lead` with `enquiry_type=partner`, and the CRM files it as a partner application.
 - **Referral links**: a partner sends people to `https://www.siteguardsystems.com.au/?ref=CODE`. The code is kept for that visit (`sessionStorage`, no cookie) and sent with any enquiry, so the CRM can credit the partner.
 - **Paid links** (any `fee` other than `none`) carry `rel="sponsored"` and say on the listing that a referral fee may apply.
-- **Google review badge** in the footer, on `/contact/` and on `/partners/`. "Review us on Google" appears once `place_id` (or `review_url`) is set. The star rating appears only with `rating`, `count` and `as_of`, the date it was read off the profile. A production build fails if that date is more than 120 days old. The site doesn't use review structured data, because Google doesn't show self-published review markup for a business's own site.
+- **Google review links** in the footer, on `/contact/` and on `/partners/`: "See our reviews on Google" (`profile_url`, else a Maps link from `place_id`) and "Leave us a review" (`review_url`, else `write_review_url` or the write-a-review link from `place_id`). They appear once the profile is set. **Links only, never a rating, count or review text** (Dan's decision N3, 8 Nov 2026). A typed-in number goes stale and can't be checked here, and showing chosen reviews risks misleading under the Australian Consumer Law. Rating fields left in the data are ignored, and the build notes them. Links must be Google addresses (`share.google`, `g.page`, `maps.app.goo.gl`, `google.*`, `search.google.com`). No review structured data.
 - **Logos** go in `assets/partners/` (the CSP allows local images only).
 - **Preview with sample data:** `node build.mjs --sample-partners` (fictional listings marked "(sample)"). `--production` refuses it.
 
