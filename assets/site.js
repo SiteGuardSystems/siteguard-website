@@ -17,19 +17,6 @@
     ref = sessionStorage.getItem("sg_ref") || "";
   } catch (e) { ref = ""; }
   document.querySelectorAll("[data-ref-field]").forEach(function (i) { i.value = ref; });
-  // Campaign counts (M2): the landing page's utm values, kept for this visit only (sessionStorage,
-  // no cookie) and sent with an enquiry, so the storefront's /api/lead can count enquiries per
-  // campaign. Lower-cased, trimmed, 60 characters at most; nothing else about the visitor.
-  var utm = {};
-  try {
-    var q = new URLSearchParams(window.location.search);
-    if (q.has("utm_source") || q.has("utm_medium") || q.has("utm_campaign")) {
-      ["utm_source", "utm_medium", "utm_campaign"].forEach(function (k) { utm[k] = (q.get(k) || "").trim().toLowerCase().slice(0, 60); });
-      sessionStorage.setItem("sg_utm", JSON.stringify(utm));
-    } else {
-      utm = JSON.parse(sessionStorage.getItem("sg_utm") || "{}") || {};
-    }
-  } catch (e) { utm = {}; }
   // Register interest: ?interest=app|audit|both preselects the choice.
   (function () {
     var m = /[?&]interest=(app|audit|both)(?:&|$)/.exec(window.location.search);
@@ -50,7 +37,12 @@
         phone: val(f, "phone"), need: (val(f, "service") ? "[" + val(f, "service") + "] " : "") + val(f, "need"), website: val(f, "website"),
         enquiry_type: val(f, "enquiry_type") || "enquiry", ref: ref,
         partner_url: val(f, "partner_url"), partner_kind: val(f, "partner_kind") };
-      ["utm_source", "utm_medium", "utm_campaign"].forEach(function (k) { if (typeof utm[k] === "string") data[k] = utm[k]; });
+      // X2 (W10): the visit's utm_* and gclid, from assets/attribution.js. The middleware adds that
+      // script only while campaign counts are on, so with counts off nothing is sent.
+      if (typeof window.sgAttribution === "function") {
+        var a = window.sgAttribution();
+        Object.keys(a).forEach(function (k) { data[k] = a[k]; });
+      }
       // Register interest (enquiry_type app-interest): interest, trade and the consent basis.
       if (data.enquiry_type === "app-interest") {
         var picked = f.querySelector('input[name="interest"]:checked');
