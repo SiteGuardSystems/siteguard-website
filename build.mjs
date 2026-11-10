@@ -225,6 +225,11 @@ const cartEnabled = () => shopOn(MODE);
 // shop pages, and the ones the script draws (single documents) are hidden by
 // body[data-browse-only] in site.css.
 const browseOnly = () => shopShown(MODE) && !shopOn(MODE);
+// S25 (audit queue Rev01): while FORMS is browse only (beta), this site's old /forms/ pages send
+// people to the storefront, where the shop, its prices and its consent-recording interest form
+// live. Each page goes to the same path there (the shop pages' canonical). The redirect stops
+// as soon as the shop opens here (beta off and checkout on).
+export const formsRedirects = (forms = FORMS) => [["/forms", `${forms}/`], ["/forms/*", `${forms}/:splat`]];
 const BUY_CONTROL = /<button\b[^>]*\bdata-add-(?:pack|doc)=[^>]*>[\s\S]*?<\/button>|<a\b[^>]*\bdata-preview-disabled\b[^>]*>[\s\S]*?<\/a>/g;
 export const withoutBuyControls = (html) => html.replace(BUY_CONTROL, "");
 const BETA_NOTICE = `<section class="band" data-beta-notice><div class="wrap"><p class="status-line"><strong>SiteGuard FORMS is in beta.</strong> Browse the range and prices now. Orders aren't open yet; they open here and on siteguardforms.com.au at the same time.</p></div></section>`;
@@ -1030,7 +1035,7 @@ async function main() {
   Cache-Control: public, max-age=3600
 `);
   for (const [from, to] of REDIRECTS) if (!urls.has(to.replace(/:splat$/, ""))) problems.push(`_redirects: ${from} goes to ${to}, which isn't a page`);
-  await writeFile(path.join(DIST, "_redirects"), REDIRECTS.map(([from, to]) => `${from} ${to} 301`).join("\n") + "\n");
+  await writeFile(path.join(DIST, "_redirects"), [...REDIRECTS, ...(browseOnly() ? formsRedirects() : [])].map(([from, to]) => `${from} ${to} 301`).join("\n") + "\n");
   console.log(`Built ${pages.length} pages into dist/`);
   const blocking = problems.filter((p) => PRODUCTION || !/open item/.test(p));
   for (const p of problems) console.log(`  ${blocking.includes(p) ? "ERROR" : "note "}: ${p}`);
