@@ -17,19 +17,15 @@
     ref = sessionStorage.getItem("sg_ref") || "";
   } catch (e) { ref = ""; }
   document.querySelectorAll("[data-ref-field]").forEach(function (i) { i.value = ref; });
-  // Campaign counts (M2): the landing page's utm values, kept for this visit only (sessionStorage,
-  // no cookie) and sent with an enquiry, so the storefront's /api/lead can count enquiries per
-  // campaign. Lower-cased, trimmed, 60 characters at most; nothing else about the visitor.
-  var utm = {};
-  try {
-    var q = new URLSearchParams(window.location.search);
-    if (q.has("utm_source") || q.has("utm_medium") || q.has("utm_campaign")) {
-      ["utm_source", "utm_medium", "utm_campaign"].forEach(function (k) { utm[k] = (q.get(k) || "").trim().toLowerCase().slice(0, 60); });
-      sessionStorage.setItem("sg_utm", JSON.stringify(utm));
-    } else {
-      utm = JSON.parse(sessionStorage.getItem("sg_utm") || "{}") || {};
-    }
-  } catch (e) { utm = {}; }
+  // Campaign attribution (X2, W10; assets/attribution.js): the landing's utm_* and gclid, kept
+  // for this visit only and sent with an enquiry. Only when the page says campaign counts are on
+  // (functions/_middleware.js marks <body data-attribution="1"> once METRICS_DB is bound).
+  var attribution = {};
+  var keys = (window.SGAttribution && window.SGAttribution.KEYS) || [];
+  if (document.body && document.body.getAttribute("data-attribution") === "1" && window.SGAttribution) {
+    try { attribution = window.SGAttribution.capture(window.location.search, window.sessionStorage); } catch (e) { attribution = {}; }
+    document.querySelectorAll("[data-attribution-field]").forEach(function (i) { i.value = attribution[i.name] || ""; });
+  }
   // Register interest: ?interest=app|audit|both preselects the choice.
   (function () {
     var m = /[?&]interest=(app|audit|both)(?:&|$)/.exec(window.location.search);
@@ -50,7 +46,7 @@
         phone: val(f, "phone"), need: (val(f, "service") ? "[" + val(f, "service") + "] " : "") + val(f, "need"), website: val(f, "website"),
         enquiry_type: val(f, "enquiry_type") || "enquiry", ref: ref,
         partner_url: val(f, "partner_url"), partner_kind: val(f, "partner_kind") };
-      ["utm_source", "utm_medium", "utm_campaign"].forEach(function (k) { if (typeof utm[k] === "string") data[k] = utm[k]; });
+      keys.forEach(function (k) { if (attribution[k]) data[k] = attribution[k]; });
       // Register interest (enquiry_type app-interest): interest, trade and the consent basis.
       if (data.enquiry_type === "app-interest") {
         var picked = f.querySelector('input[name="interest"]:checked');

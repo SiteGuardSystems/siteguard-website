@@ -15,9 +15,14 @@ exists, and `/internal/metrics/campaigns` answers 401 to everyone until the toke
 - Nothing else: no IP, cookie, user agent, visitor or session id, or URL. No cookie is set.
 - Not counted: the unsubscribe page `/u/...`, `/internal/...`, `/assets/...`, files, non-GET
   requests and error pages.
-- **Enquiries:** `assets/site.js` keeps the landing's three utm values for the visit
-  (`sessionStorage`, no cookie) and sends them with an enquiry to the storefront's `/api/lead`.
-  The storefront counts `enquiries` (its own M2 work).
+- **Enquiries (X2, W10):** only while counts are on, the middleware marks each page
+  `<body data-attribution="1">`, and `assets/attribution.js` keeps the landing's `utm_source`,
+  `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` and `gclid` for the visit
+  (`sessionStorage` key `sg_attribution`, first landing wins, no cookie). The enquiry, Book a call
+  and Register interest forms carry them as hidden fields of the same names and send them to the
+  storefront's `/api/lead`, which counts `enquiries` (its own M2 work; the Storefront's S6 uses the
+  same names and key). The gclid goes with the enquiry only; it never reaches the Console. With
+  counts off, nothing is kept or sent.
 
 The middleware runs on every request once Functions are deployed. That's within the Pages free
 tier at this site's traffic.
