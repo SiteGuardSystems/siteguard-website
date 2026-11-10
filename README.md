@@ -24,6 +24,7 @@ Each tag is **off** until its build setting is set in the Pages project: Setting
 | Setting | What | CSP opened |
 |---|---|---|
 | `CF_WEB_ANALYTICS_TOKEN` | M1: the Cloudflare Web Analytics beacon, which is cookie-less. The value is the 32-hex token in the site's Web Analytics snippet (Analytics & Logs > Web Analytics > Add a site > `siteguardsystems.com.au` > Manage site). A malformed value adds nothing and is listed in the build output | `script-src https://static.cloudflareinsights.com`, `connect-src https://cloudflareinsights.com` |
+| `GOOGLE_SITE_VERIFICATION` | M3: the Search Console verification `<meta>` tag. Search Console > Add property > URL prefix `https://www.siteguardsystems.com.au/` > HTML tag. Paste only the `content="..."` value, redeploy, then click Verify. Keep the setting afterwards: Google re-checks it | none |
 
 Not on the `/u/<token>` unsubscribe page, which is a Function with its own headers.
 

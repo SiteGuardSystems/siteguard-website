@@ -6,6 +6,9 @@
 //   CF_WEB_ANALYTICS_TOKEN  M1: Cloudflare Web Analytics beacon. Cookie-less; the token is the
 //                           site's beacon token (32 hex characters) from Analytics & Logs >
 //                           Web Analytics > the site > "Manage site" snippet.
+//   GOOGLE_SITE_VERIFICATION
+//                           M3: Search Console's HTML-tag verification code (the content="..."
+//                           value only). Adds <meta name="google-site-verification">; no CSP change.
 
 const BEACON_SRC = "https://static.cloudflareinsights.com/beacon.min.js";
 const BEACON_ORIGIN = "https://static.cloudflareinsights.com";
@@ -13,7 +16,7 @@ const BEACON_CONNECT = "https://cloudflareinsights.com";
 
 const attr = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
-/** Read the build settings. Returns { cfBeacon, problems }. */
+/** Read the build settings. Returns { cfBeacon, gscVerify, problems }. */
 export function loadMeasure(env = process.env) {
   const problems = [];
   const raw = (env.CF_WEB_ANALYTICS_TOKEN ?? "").trim();
@@ -22,12 +25,19 @@ export function loadMeasure(env = process.env) {
     if (/^[0-9a-f]{32}$/i.test(raw)) cfBeacon = raw.toLowerCase();
     else problems.push("CF_WEB_ANALYTICS_TOKEN isn't a Web Analytics beacon token (32 hex characters): no beacon added");
   }
-  return { cfBeacon, problems };
+  const gsc = (env.GOOGLE_SITE_VERIFICATION ?? "").trim();
+  let gscVerify = null;
+  if (gsc) {
+    if (/^[A-Za-z0-9_-]{10,100}$/.test(gsc)) gscVerify = gsc;
+    else problems.push("GOOGLE_SITE_VERIFICATION isn't a Search Console verification code (paste only the content=\"...\" value): no tag added");
+  }
+  return { cfBeacon, gscVerify, problems };
 }
 
 /** Tags for every page's <head> (empty string when everything is off). */
 export function measureHead(m) {
   const out = [];
+  if (m?.gscVerify) out.push(`<meta name="google-site-verification" content="${attr(m.gscVerify)}">`);
   if (m?.cfBeacon) out.push(`<script defer src="${BEACON_SRC}" data-cf-beacon="${attr(JSON.stringify({ token: m.cfBeacon }))}"></script>`);
   return out.map((t) => t + "\n").join("");
 }
