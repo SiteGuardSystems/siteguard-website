@@ -8,7 +8,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { loadMeasure, measureCsp, measureHead } from "../scripts/lib/measure.mjs";
+import { gtagInitScript, loadMeasure, measureCsp, measureHead } from "../scripts/lib/measure.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
@@ -60,12 +60,52 @@ test("M3 Search Console: the verification meta tag, and no CSP change", () => {
   }
 });
 
+test("M9 Google tag: off by default and unless GOOGLE_ADS_TAG=on with an AW- ID", () => {
+  for (const env of [{}, { GOOGLE_ADS_ID: "AW-123456789" }, { GOOGLE_ADS_TAG: "off", GOOGLE_ADS_ID: "AW-123456789" }]) {
+    const m = loadMeasure(env);
+    assert.equal(m.ads, null);
+    assert.doesNotMatch(measureHead(m), /googletagmanager/);
+    assert.equal(gtagInitScript(m), null);
+  }
+  assert.match(loadMeasure({ GOOGLE_ADS_TAG: "on" }).problems[0], /GOOGLE_ADS_ID/);
+  assert.match(loadMeasure({ GOOGLE_ADS_TAG: "yes" }).problems[0], /on or off/);
+});
+
+test("M9 on: gtag.js plus a same-origin init file, conversions on the lead-sent event, CSP opened for Google only", () => {
+  const m = loadMeasure({ GOOGLE_ADS_TAG: "on", GOOGLE_ADS_ID: "aw-123456789", GOOGLE_ADS_ENQUIRY_LABEL: "AbC123enq", GOOGLE_ADS_CALL_LABEL: "bad label!" });
+  assert.deepEqual(m.ads, { id: "AW-123456789", enquiry: "AbC123enq", call: null });
+  assert.match(m.problems[0], /GOOGLE_ADS_CALL_LABEL/);
+  const head = measureHead(m);
+  assert.match(head, /<script async src="https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=AW-123456789"><\/script>/);
+  assert.match(head, /<script src="\/assets\/gtag-init\.js" defer><\/script>/);
+  const js = gtagInitScript(m);
+  assert.match(js, /gtag\("config", "AW-123456789"\)/);
+  assert.match(js, /enquiry: "AW-123456789\/AbC123enq", call: null/);
+  assert.match(js, /addEventListener\("sg:lead-sent"/);
+  const csp = measureCsp(BASE_CSP, m);
+  assert.match(csp, /script-src 'self' https:\/\/www\.googletagmanager\.com/);
+  assert.match(csp, /frame-src 'self' https:\/\/td\.doubleclick\.net/);
+  assert.match(csp, /img-src 'self' https:\/\/www\.googletagmanager\.com/);
+});
+
+test("the enquiry form raises the lead-sent event: call on a Book a call form, enquiry otherwise", async () => {
+  const js = await readFile(path.join(ROOT, "assets/site.js"), "utf8");
+  assert.match(js, /new CustomEvent\("sg:lead-sent", \{ detail: \{ kind: val\(f, "service"\) \? "call" : "enquiry" \} \}\)/);
+});
+
+test("default build: no Google tag file, no Google hosts in the CSP", async () => {
+  await assert.rejects(readFile(path.join(DIST, "assets/gtag-init.js")));
+  const h = await readFile(path.join(DIST, "_headers"), "utf8");
+  assert.doesNotMatch(h, /googletagmanager|doubleclick|googleadservices/);
+});
+
 test("built with the setting: the beacon is on every page and in _headers", async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "measure-"));
-  await run(process.execPath, [path.join(ROOT, "build.mjs")], { cwd: ROOT, env: { ...process.env, DIST_DIR: dir, CF_WEB_ANALYTICS_TOKEN: TOKEN, GOOGLE_SITE_VERIFICATION: "TestVerificationCode_0123" } });
+  await run(process.execPath, [path.join(ROOT, "build.mjs")], { cwd: ROOT, env: { ...process.env, DIST_DIR: dir, CF_WEB_ANALYTICS_TOKEN: TOKEN, GOOGLE_SITE_VERIFICATION: "TestVerificationCode_0123", GOOGLE_ADS_TAG: "on", GOOGLE_ADS_ID: "AW-123456789" } });
   for (const f of ["index.html", "contact/index.html", "legal/privacy/index.html"])
     assert.match(await readFile(path.join(dir, f), "utf8"), /beacon\.min\.js" data-cf-beacon=/, f);
   assert.match(await readFile(path.join(dir, "index.html"), "utf8"), /<meta name="google-site-verification" content="TestVerificationCode_0123">/);
+  assert.match(await readFile(path.join(dir, "assets/gtag-init.js"), "utf8"), /AW-123456789/);
   const h = await readFile(path.join(dir, "_headers"), "utf8");
   assert.match(h, /script-src 'self'[^;]* https:\/\/static\.cloudflareinsights\.com/);
   assert.match(h, /connect-src [^;]*https:\/\/cloudflareinsights\.com/);
