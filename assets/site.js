@@ -17,15 +17,6 @@
     ref = sessionStorage.getItem("sg_ref") || "";
   } catch (e) { ref = ""; }
   document.querySelectorAll("[data-ref-field]").forEach(function (i) { i.value = ref; });
-  // Campaign attribution (X2, W10; assets/attribution.js): the landing's utm_* and gclid, kept
-  // for this visit only and sent with an enquiry. Only when the page says campaign counts are on
-  // (functions/_middleware.js marks <body data-attribution="1"> once METRICS_DB is bound).
-  var attribution = {};
-  var keys = (window.SGAttribution && window.SGAttribution.KEYS) || [];
-  if (document.body && document.body.getAttribute("data-attribution") === "1" && window.SGAttribution) {
-    try { attribution = window.SGAttribution.capture(window.location.search, window.sessionStorage); } catch (e) { attribution = {}; }
-    document.querySelectorAll("[data-attribution-field]").forEach(function (i) { i.value = attribution[i.name] || ""; });
-  }
   // Register interest: ?interest=app|audit|both preselects the choice.
   (function () {
     var m = /[?&]interest=(app|audit|both)(?:&|$)/.exec(window.location.search);
@@ -46,7 +37,12 @@
         phone: val(f, "phone"), need: (val(f, "service") ? "[" + val(f, "service") + "] " : "") + val(f, "need"), website: val(f, "website"),
         enquiry_type: val(f, "enquiry_type") || "enquiry", ref: ref,
         partner_url: val(f, "partner_url"), partner_kind: val(f, "partner_kind") };
-      keys.forEach(function (k) { if (attribution[k]) data[k] = attribution[k]; });
+      // X2 (W10): the visit's utm_* and gclid, from assets/attribution.js. The middleware adds that
+      // script only while campaign counts are on, so with counts off nothing is sent.
+      if (typeof window.sgAttribution === "function") {
+        var a = window.sgAttribution();
+        Object.keys(a).forEach(function (k) { data[k] = a[k]; });
+      }
       // Register interest (enquiry_type app-interest): interest, trade and the consent basis.
       if (data.enquiry_type === "app-interest") {
         var picked = f.querySelector('input[name="interest"]:checked');

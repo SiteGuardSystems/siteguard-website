@@ -153,8 +153,7 @@ test("the Console endpoint: 401 with no detail, 400 on a bad range, then the con
 
 test("the enquiry form carries the landing's utm values only while counts are on (test/attribution.test.js)", async () => {
   const js = await readFile(new URL("../assets/site.js", import.meta.url), "utf8");
-  assert.match(js, /getAttribute\("data-attribution"\) === "1"/);
-  assert.match(js, /data\[k\] = attribution\[k\]/);
+  assert.match(js, /window\.sgAttribution\(\)/);
   assert.doesNotMatch(js, /document\.cookie|localStorage/);
 });
 

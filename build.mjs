@@ -366,7 +366,6 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta prop
 <link rel="preload" href="/assets/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/site.css">
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n")}
-<script src="/assets/attribution.js" defer></script>
 <script src="/assets/site.js" defer></script>
 ${/data-app-checkout|data-founding-cancel/.test(body) ? '<script src="/assets/app-checkout.js" defer></script>\n' : ""}${cartEnabled() || (browseOnly() && url.startsWith(SHOP_BASE + "/")) ? '<script src="/assets/cart.js" defer></script>\n' : ""}<script src="/assets/support-chat.js" defer></script>
 ${measureHead(MEASURE)}</head>
@@ -394,11 +393,6 @@ const enquire = (label = "Send an enquiry") => `<p><a class="btn btn-hivis" href
 // the exact wording shown is sent with it.
 export const CONSENT_WORDING = "Email me about the SiteGuard App and SiteGuard Audit, including when they open. I can unsubscribe at any time.";
 
-// X2 (W10): the campaign fields an enquiry carries (assets/attribution.js fills them when campaign
-// counts are on; empty otherwise). The same names as the Storefront's forms (S6).
-export const ATTRIBUTION_FIELDS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid"];
-const attributionFields = () => ATTRIBUTION_FIELDS.map((k) => `\n  <input type="hidden" name="${k}" value="" data-attribution-field>`).join("");
-
 function interestForm(app) {
   const trades = [...(app?.trades ?? []).map((t) => t.name), "Builder", "HSEQ consultant", "Other business"];
   return `<form class="form" data-lead-form data-source="systems" data-endpoint="${esc(LEAD_ENDPOINT)}" method="post" action="${esc(LEAD_ENDPOINT)}" novalidate>
@@ -406,7 +400,7 @@ function interestForm(app) {
   <input type="hidden" name="enquiry_type" value="app-interest">
   <input type="hidden" name="consent_wording" value="${esc(CONSENT_WORDING)}">
   <input type="hidden" name="consent_source" value="${ORIGIN}/register-interest/">
-  <input type="hidden" name="ref" value="" data-ref-field>${attributionFields()}
+  <input type="hidden" name="ref" value="" data-ref-field>
   <fieldset class="choice"><legend>I'm interested in</legend>
     <label class="check"><input type="radio" name="interest" value="app">The SiteGuard App</label>
     <label class="check"><input type="radio" name="interest" value="audit">SiteGuard Audit</label>
@@ -430,7 +424,7 @@ function interestForm(app) {
 // (assets/site.js puts it at the start of "need", so the CRM sees it).
 function leadForm({ service = "" } = {}) {
   return `<form class="form" data-lead-form data-source="systems" data-endpoint="${esc(LEAD_ENDPOINT)}" method="post" action="${esc(LEAD_ENDPOINT)}" novalidate>
-  <input type="hidden" name="source" value="systems">${service ? `\n  <input type="hidden" name="service" value="${esc(service)}">` : ""}${attributionFields()}
+  <input type="hidden" name="source" value="systems">${service ? `\n  <input type="hidden" name="service" value="${esc(service)}">` : ""}
   <label>Your name<input name="name" autocomplete="name" required maxlength="200"></label>
   <label>Email<input type="email" name="email" autocomplete="email" required maxlength="200"></label>
   <label>Company<input name="company" autocomplete="organization" maxlength="200"></label>

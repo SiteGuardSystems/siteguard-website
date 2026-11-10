@@ -1,16 +1,19 @@
 // M2 campaign counts (W3): after the page is served, a landing that carries utm values adds 1 to
 // its day's count in D1 (binding METRICS_DB). Off until the binding exists; any D1 trouble is
 // ignored, so a page never fails because of counting. No cookie, nothing about the visitor.
-// X2 (W10): while counts are on, each HTML page is marked <body data-attribution="1">, which is
-// what lets assets/attribution.js carry the landing's utm values into an enquiry. Off, unmarked.
+// X2 (W10): while counts are on, each HTML page also gets <script src="/assets/attribution.js">,
+// which carries the landing's utm values into an enquiry (the Storefront adds the same script
+// while its CAMPAIGN_COUNTS=on). Counts off: the script isn't on the page, so nothing is kept.
 import { addLanding, countable, landingKey } from "./_lib/campaigns.js";
 
-/** The page with <body data-attribution="1"> (Cloudflare's HTMLRewriter; unchanged without it). */
-export function markAttribution(response) {
+export const ATTRIBUTION_TAG = '<script src="/assets/attribution.js" defer></script>';
+
+/** The page with the attribution script in its <head> (Cloudflare's HTMLRewriter; unchanged without it). */
+export function withAttribution(response) {
   const html = (response.headers.get("content-type") ?? "").includes("text/html");
   if (!html || typeof HTMLRewriter !== "function") return response;
   return new HTMLRewriter()
-    .on("body", { element(e) { e.setAttribute("data-attribution", "1"); } })
+    .on("head", { element(e) { e.append(ATTRIBUTION_TAG, { html: true }); } })
     .transform(response);
 }
 
@@ -22,5 +25,5 @@ export async function onRequest(context) {
     const key = landingKey(context.request.url);
     if (key) context.waitUntil(addLanding(db, key).catch(() => {}));
   }
-  return markAttribution(response);
+  return withAttribution(response);
 }
