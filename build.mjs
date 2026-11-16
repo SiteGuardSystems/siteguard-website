@@ -26,6 +26,7 @@ import { loadPlanning, planningIndexBody, planningStateBody, inspectionsIndexBod
 import { loadSiteMode, shopOn, shopShown, statusCopy, appStatusCopy, withoutStatusCopy, checkStatusCopy, FORMS_EXCEPTION } from "./scripts/lib/site-mode.mjs";
 import { loadAppPackages, appPages, appProductId } from "./scripts/lib/app-pages.mjs";
 import { loadSupportChat, supportChatWidget, supportChatConnect } from "./scripts/lib/support-chat.mjs";
+import { SHARE_MODULES, shareMeta, cardText } from "./scripts/lib/share-cards.mjs";
 import { loadMeasure, measureHead, measureCsp, gtagInitScript } from "./scripts/lib/measure.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
@@ -337,12 +338,17 @@ function crumbs(trail) {
 }
 
 export const TITLE_MAX = 60;
+// Share cards (W14): the Consulting and Education pages that get one; written to dist/share-cards.json.
+const shareCards = [];
 function page({ url, title, description, body, trail = [], jsonld = [], strip = true, noindex = false, canonical, preview = false, module = null }) {
   noindex = noindex || preview;
   // " | SiteGuard Systems" is left off a title that already names SiteGuard when it would take the
   // title past TITLE_MAX characters, where search results cut it short (F3, SEO check Nov 2026).
   const suffixed = `${title} | SiteGuard Systems`;
   const full = url === "/" || (/SiteGuard/.test(title) && suffixed.length > TITLE_MAX) ? title : suffixed;
+  // W14: a share card for an indexed Consulting or Education page that is canonical here.
+  const share = SHARE_MODULES.has(module) && !noindex && !canonical;
+  if (share) shareCards.push({ url, ...cardText({ title, description, module }) });
   const ld = [...jsonld];
   if (trail.length) ld.push({ "@context": "https://schema.org", "@type": "BreadcrumbList",
     itemListElement: [["/", "Home"], ...trail].map(([h, l], i) => ({ "@type": "ListItem", position: i + 1, name: l, item: ORIGIN + h })) });
@@ -358,8 +364,8 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<meta prop
 <meta property="og:site_name" content="SiteGuard Systems">
 <meta property="og:title" content="${esc(full)}">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:url" content="${canonical ?? ORIGIN + url}">
-<meta property="og:image" content="${ORIGIN}/assets/apple-touch-icon.png">
+${share ? shareMeta({ url, title, description, canonical: ORIGIN + url, module, origin: ORIGIN }) : `<meta property="og:url" content="${canonical ?? ORIGIN + url}">
+<meta property="og:image" content="${ORIGIN}/assets/apple-touch-icon.png">`}
 <meta name="theme-color" content="#2B2A2F">
 <link rel="icon" href="/assets/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -1012,6 +1018,7 @@ async function main() {
   }
   if (shopShown(MODE)) await writeFile(path.join(DIST, "assets/cart.js"), systemsCartScript(await cartBrowserParts(), { engine: CHECKOUT_ENGINE, root: `${SHOP_BASE}/` }));
   await writeFile(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.map((p) => `  <url><loc>${ORIGIN}${p.url}</loc></url>`).join("\n")}\n</urlset>\n`);
+  await writeFile(path.join(DIST, "share-cards.json"), JSON.stringify(shareCards, null, 2) + "\n");
   await writeFile(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\n${shopOn(MODE) ? "Disallow: /cart/\nDisallow: /order/\n" : ""}Sitemap: ${ORIGIN}/sitemap.xml\n`);
   // Cloudflare Pages headers and redirects.
   // The lead form's origin, plus the help chat's API origin once it is set (P11).
