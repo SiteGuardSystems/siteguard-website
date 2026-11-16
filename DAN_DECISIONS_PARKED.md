@@ -17,3 +17,15 @@ in `DAN_DECISIONS_PENDING.md`.
 | P9 | W7 (S25): `/forms/*` redirect | While FORMS is browse only (beta), `/forms` and `/forms/*` 301 to the same path on siteguardforms.com.au. The redirect lifts itself when the shop opens here. OK? | Yes |
 | P10 | W8: privacy contact | Privacy requests: the N1 support@ address, or keep hello@? | support@ (N1) |
 | P11 | W7 skipped items | **S22** (video titles): there's no `product-videos.json` on this site, so it's the storefront's. **S23** (`consent_basis`): `/api/lead` lives on the storefront. **S24** (footer "Subscriber sign in"): there's no such link on this site. Nothing to do here; confirm the storefront session has them | Storefront S3 |
+
+## FORMS queue 16 Nov 2026
+
+Lane W of `SG_FORMS_AUDIT_AND_BUILD_QUEUE_Rev01_16_Nov_2026.md` (siteguard-ai `docs/go-live/`): W13 (#57) and W14.
+
+| # | Item | What's needed from Dan | Recommended default (used) |
+|---|---|---|---|
+| F1 | W13: storefront page paths | The storefront's "Lost your documents?" (S10) and "How delivery works" (S14) pages weren't built when W13 was written, so their URLs were chosen here. Keep them, or change `path` in `data/forms-support-links.json` to wherever S10/S14 land? | `/lost-documents/` and `/how-delivery-works/` on siteguardforms.com.au, both `live: false` until the storefront pages are deployed |
+| F2 | W13: when to switch the links on | Each link appears on `/support/` only when its `live` is `true`. Turn each on in the same change that deploys the storefront page? | Yes, one at a time, after the page is live |
+| F3 | W14: the share link's utm tags | The shared link (`og:url`) is the canonical page plus `utm_source=social&utm_medium=share&utm_campaign=<consulting or education>`, so shares are counted by campaign counts once those are on. The `<link rel="canonical">` stays clean. OK, or other values? | `social` / `share` / module name |
+| F4 | W14: which pages | Cards are on every indexed page in the Consulting and Education sections: `/consulting/` and its eight service pages, `/about/`, `/library/` (both under Consulting), `/education/` and its four series pages. Add `/about/` and `/library/`, or drop them? | Keep them (they're in the Consulting section) |
+| F5 | W14: redrawing cards | The PNGs are drawn on a dev machine (`npm run share-cards`, Playwright) and committed; `npm test` fails if a page's title or description changes without a fresh card. OK, or draw them in the Pages build instead (slower, needs a browser in the build)? | Dev script + test |
