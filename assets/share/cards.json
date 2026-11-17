@@ -1,0 +1,82 @@
+{
+  "education": {
+    "title": "SiteGuard Education: construction safety videos",
+    "description": "SiteGuard Education videos for Australian construction: how-tos, toolbox talks and inductions to show your crews, also on YouTube.",
+    "module": "education"
+  },
+  "education-about": {
+    "title": "About SiteGuard: SiteGuard Education videos",
+    "description": "About SiteGuard from SiteGuard Education: Who we are and how SiteGuard Systems and SiteGuard FORMS work.",
+    "module": "education"
+  },
+  "education-how-tos": {
+    "title": "How-tos: SiteGuard Education videos",
+    "description": "How-tos from SiteGuard Education: Short walk-throughs of the documents and the systems behind them.",
+    "module": "education"
+  },
+  "education-toolbox-talks": {
+    "title": "Toolbox talks: SiteGuard Education videos",
+    "description": "Toolbox talks from SiteGuard Education: Ready-to-run toolbox talks for site crews.",
+    "module": "education"
+  },
+  "education-inductions": {
+    "title": "Inductions: SiteGuard Education videos",
+    "description": "Inductions from SiteGuard Education: Site and workplace induction videos.",
+    "module": "education"
+  },
+  "consulting": {
+    "title": "Consulting",
+    "description": "HSEQ consulting for Australian construction: IMS design and implementation, gap analysis, internal audit support, workplace inspections, custom SWMS, incident investigation and advisory retainers.",
+    "module": "consulting"
+  },
+  "consulting-ims-design-implementation": {
+    "title": "IMS design and implementation",
+    "description": "We design your management system and help you put it in place: aligned to ISO 9001 (quality), ISO 14001 (environment) and ISO 45001 (health and safety), on its own or as one integrated management system (IMS) that fits how your business works.",
+    "module": "consulting"
+  },
+  "consulting-gap-analysis": {
+    "title": "Gap analysis",
+    "description": "A structured review of your current system against ISO 9001, ISO 14001 or ISO 45001, or against what a principal contractor or prequalification scheme asks for, with a prioritised list of what to fix.",
+    "module": "consulting"
+  },
+  "consulting-internal-audit-support": {
+    "title": "Internal audit support",
+    "description": "Independent internal audits of your management system: before a certification or surveillance audit, before a client audit, or as part of your own audit programme, reported with clear findings and corrective actions.",
+    "module": "consulting"
+  },
+  "consulting-workplace-inspections": {
+    "title": "Workplace inspections",
+    "description": "Workplace and site inspections, one-off or as a programme (monthly, or at an interval agreed with you), with photos, findings and corrective action requests your team can close out.",
+    "module": "consulting"
+  },
+  "consulting-custom-swms": {
+    "title": "Custom SWMS development",
+    "description": "Safe work method statements written for your actual task, site and crew, including high risk construction work, rather than a stock template with your logo on it.",
+    "module": "consulting"
+  },
+  "consulting-incident-investigation": {
+    "title": "Incident investigation",
+    "description": "A structured investigation after an incident or near miss: what happened, why it happened and what will stop it happening again, written up so your team and your client can follow it.",
+    "module": "consulting"
+  },
+  "consulting-advisory-retainers": {
+    "title": "Advisory retainers",
+    "description": "Ongoing HSEQ support from a senior practitioner: an agreed amount of help every month, without scoping and quoting each job.",
+    "module": "consulting"
+  },
+  "consulting-custom-content": {
+    "title": "Custom content, on request",
+    "description": "Video content made for your business, on request: a full site-specific induction video, custom toolbox talks or a company induction video, kept private to you.",
+    "module": "consulting"
+  },
+  "library": {
+    "title": "Document library",
+    "description": "780+ controlled HSEQ documents: 215 SWMS across 28 trade series, ITPs, plans, policies, forms and registers, reviewed every 6 months.",
+    "module": "consulting"
+  },
+  "about": {
+    "title": "About Daniel Silver",
+    "description": "Daniel Silver: 27 years in Australian construction, from carpenter to senior site manager to HSEQ systems practitioner.",
+    "module": "consulting"
+  }
+}
