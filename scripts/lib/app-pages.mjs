@@ -148,6 +148,7 @@ ${buyBand()}`,
     description: `SiteGuard App trade packages for ${app.trades.length} trades at Domestic, Light Commercial and Heavy Commercial levels, each with that trade's SWMS, ITPs, forms and registers.`,
     body: `${head(TP, "Trade packages", "One package for your trade at the level of work you do. Every level carries your trade's SWMS and ITPs; higher levels add environmental basics and Tier 1 documents.")}
 <section class="band"><div class="wrap">
+  ${lockup("/assets/brand/sg-app-lockup.png", "SiteGuard App", 196)}
   ${when({ cls: "note status-line" })}
   <div class="rungs">${app.levels.map((l) => `<div class="rung"><h3>${esc(l.name)}</h3><p class="summary">${esc(l.who)}.</p>
     <ul>${l.modules.map((m) => `<li>${modLink(m)}</li>`).join("")}</ul>
@@ -168,6 +169,7 @@ ${buyBand()}`,
       description: `The SiteGuard App package for ${t.name.toLowerCase()} (${t.who.toLowerCase()}): ${t.documents.trade_swms.length} trade SWMS, ${t.documents.trade_itps.length} ITPs and the forms and registers at each level.`,
       body: `${head(tr, esc(t.name), `For ${esc(t.who.toLowerCase())}. Your trade's documents, filled in with your details, at the level of work you do.`)}
 <section class="band"><div class="wrap">
+  ${lockup("/assets/brand/sg-app-lockup.png", "SiteGuard App", 196)}
   ${when({ cls: "note status-line" })}
   <div class="rungs">${app.levels.map((l) => `<div class="rung"><h3>${esc(l.name)}</h3><p class="summary">${esc(l.who)}.</p>
     <ul>${l.modules.map((m) => `<li>${modLink(m)}</li>`).join("")}</ul>
@@ -192,6 +194,7 @@ ${buyBand()}`,
     description: "SiteGuard App builder bundles for domestic, light commercial and heavy commercial builders: safety, quality, environmental and management modules, with SiteGuard Audit at Heavy Commercial.",
     body: `${head(TB, "Builder bundles", "The modules a builder runs a site on, in one bundle, with the documents included and kept current.")}
 <section class="band"><div class="wrap">
+  ${lockup("/assets/brand/sg-app-lockup.png", "SiteGuard App", 196)}
   ${when({ cls: "note status-line" })}
   <div class="rungs">${app.bundles.map((b) => `<div class="rung"><h3>${esc(b.name.replace(/^Builder /, ""))}</h3><p class="summary">${esc(b.who)}.</p>
     <ul>${b.components.map((c, i) => `<li>${MODULES[b.modules[i]] ? `<a class="mod-link"${modAttr(b.modules[i])} href="/app/${b.modules[i]}/">${esc(c.replace(/^(\w+)/, (w) => `SiteGuard ${w}`))}</a>` : `<a class="mod-link"${modAttr("audit")} href="/audit/">SiteGuard Audit</a> (one seat)`}</li>`).join("")}</ul>

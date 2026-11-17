@@ -27,6 +27,7 @@ import { loadSiteMode, shopOn, shopShown, statusCopy, appStatusCopy, withoutStat
 import { loadAppPackages, appPages, appProductId } from "./scripts/lib/app-pages.mjs";
 import { loadSupportChat, supportChatWidget, supportChatConnect } from "./scripts/lib/support-chat.mjs";
 import { SHARE_MODULES, shareMeta, cardText } from "./scripts/lib/share-cards.mjs";
+import { loadFormsSupport, formsSupportSection } from "./scripts/lib/forms-support.mjs";
 import { loadMeasure, measureHead, measureCsp, gtagInitScript } from "./scripts/lib/measure.mjs";
 import { loadAuditChecklists, auditPages } from "./scripts/lib/audit-pages.mjs";
 import { loadPinned, checkCatalogue, rev2 } from "./scripts/lib/dcr.mjs";
@@ -56,6 +57,8 @@ let PLANNING = { cal: null, insp: null };
 let EDU = null;
 // Help chat (data/support-chat.json; scripts/lib/support-chat.mjs). P11.
 let CHAT = { base: "", endpoint: "" };
+// FORMS support links on /support/ (data/forms-support-links.json; scripts/lib/forms-support.mjs). W13.
+let FORMS_SUPPORT = { lost_documents: { live: false }, how_delivery_works: { live: false } };
 // Measurement tags from the Pages build settings (scripts/lib/measure.mjs); all off when unset.
 let MEASURE = loadMeasure({});
 const ORIGIN = (process.env.SITE_ORIGIN ?? "https://www.siteguardsystems.com.au").replace(/\/$/, "");
@@ -561,6 +564,7 @@ async function build() {
   if (MODE.app_status === "presale" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(LAUNCH.opens ?? "")) problems.push("data: app-packages.json launch.opens (YYYY-MM) is needed while app_status is presale");
   TRUST = await loadTrust(ROOT, "systems", { sample: SAMPLE_PARTNERS });
   CHAT = await loadSupportChat(ROOT);
+  FORMS_SUPPORT = await loadFormsSupport(ROOT);
   MEASURE = loadMeasure(process.env);
   for (const p of MEASURE.problems) problems.push(`settings: ${p}`);
   for (const p of TRUST.problems) problems.push(/open item/.test(p) ? p : `data: ${p}`);
@@ -931,7 +935,7 @@ ${browseOnly() ? BETA_NOTICE : ""}<section class="band band-grey"><div class="wr
     <li>Your name and the email address on your account or order.</li>
     <li>Your order number, if it's about an order.</li>
     <li>What you were trying to do and what went wrong. A screenshot helps.</li>
-    <li>For a document: its reference and revision (on every page), and what needs fixing.</li></ul></div>
+    <li>For a document: its reference and revision (on every page), and what needs fixing.</li></ul>${formsSupportSection(FORMS_SUPPORT, FORMS)}</div>
   <div><h2>Your account</h2>
     <p>You can ask us to delete your account and your personal information at any time, without the app. <a href="/support/delete-account/">How to delete your account</a>.</p>
     <p>To see or correct the personal information we hold about you, email us. Our <a href="/legal/privacy/">Privacy Policy</a> explains how we handle it.</p>
