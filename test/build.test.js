@@ -151,6 +151,10 @@ test("SiteGuard App: a page for every trade in data/app-packages.json, module lo
     assert.ok(get("app/trade-packages/index.html").includes(`href="/app/trade-packages/${t.slug}/"`), t.slug);
   }
   for (const m of ["safety", "quality", "environmental", "management"]) assert.match(get(`app/${m}/index.html`), new RegExp(`<img src="/assets/brand/sg-${m}-lockup.svg"`));
+  // W12: every other App page (the hub, trade packages, each trade, builder bundles) carries the SiteGuard App lockup.
+  const appLockup = /<p class="lockup"><img src="\/assets\/brand\/sg-app-lockup.png" alt="SiteGuard App"/;
+  for (const f of ["app/index.html", "app/trade-packages/index.html", "app/builder-bundles/index.html", ...app.trades.map((t) => `app/trade-packages/${t.slug}/index.html`)])
+    assert.match(get(f), appLockup, f);
   for (const { f, html } of pages) assert.ok(!/\bSG-[A-Z]-[A-Z]{3}-|\bAU-\d\d\b|\bNEW-\d/.test(html), `${f}: internal document code`);
 });
 
