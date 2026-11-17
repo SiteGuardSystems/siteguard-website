@@ -1,0 +1,5 @@
+{
+  "note": "FORMS support links on /support/ (FORMS queue W13, 16 Nov 2026). Each link stays hidden until its storefront page is live: set \"live\": true only after the storefront page is deployed (S10 lost documents, S14 how delivery works). \"path\" is on the FORMS site (FORMS_URL, default https://www.siteguardforms.com.au). FORMS_SUPPORT_LINKS_PATH at build time points the build at another file (tests).",
+  "lost_documents": { "live": false, "path": "/lost-documents/" },
+  "how_delivery_works": { "live": false, "path": "/how-delivery-works/" }
+}
