@@ -6,19 +6,21 @@
 //   data/partners.json        partners and affiliates. Written by the CRM
 //                             (siteguard-ai: `python -m siteguard_org partners
 //                             export-sites`) or edited by hand.
-//   data/google-reviews.json  the Google Business Profile links (siteguard-ai #72:
-//                             place_id, profile_url, review_url, write_review_url).
+//   data/google-reviews.json  the Google Business Profile links (place_id,
+//                             profile_url, review_url, write_review_url), written
+//                             by siteguard-ai `partners export-sites`. Links only.
 // Styles: the "partners, affiliates and Google reviews" block in each site's
 // stylesheet.
 //
 // Nothing renders until there is something real to show: no partner section
-// without a partner, and no Google link without a Google profile.
+// without a partner, and no Google link without the profile link.
 //
-// Google reviews: links only (Dan, 8 Nov 2026, decision N3). The sites show
-// "See our reviews on Google" (the profile) and "Leave us a review", never a
-// rating, a review count or review text: a typed-in number goes stale and
-// can't be checked here, and a chosen set of reviews risks misleading under
-// the Australian Consumer Law. Rating fields in the data are ignored.
+// Google reviews (Dan, 8 Nov 2026, overnight decision N3): the sites show a
+// "See our reviews on Google" link to the Business Profile, and the printed QR
+// card asks for reviews. No rating, review count or review text is ever shown:
+// a typed-in number goes stale and can't be checked here, and showing only some
+// reviews risks misleading people (Australian Consumer Law). Any rating left in
+// an old google-reviews.json is ignored.
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { esc } from "./md.mjs";
@@ -36,7 +38,7 @@ export const FEES = {
 export const REF_RE = /^[A-Za-z0-9][A-Za-z0-9-]{1,23}$/;
 const LOGO_RE = /^\/assets\/partners\/[a-z0-9][a-z0-9-]*\.(png|svg|webp|jpg)$/;
 const PLACE_ID_RE = /^[A-Za-z0-9_-]{10,}$/;
-const GOOGLE_URL_RE = /^https:\/\/(www\.)?(google\.[a-z.]+|share\.google|g\.page|maps\.app\.goo\.gl|search\.google\.com)\//;
+const GOOGLE_URL_RE = /^https:\/\/(www\.)?(google\.[a-z.]+|share\.google|g\.page|maps\.app\.goo\.gl|search\.google\.com)\/[^\s"<>]*$/;
 
 /** Read and check the data for one site. `sample` reads the *.sample.json
  *  files instead, for a preview build only (a production build refuses it). */
@@ -79,14 +81,15 @@ export async function loadTrust(root, site, { sample = false } = {}) {
   for (const k of ["profile_url", "review_url", "write_review_url"]) {
     if (r[k] && !GOOGLE_URL_RE.test(r[k])) problems.push(`google-reviews.json: ${k} must be a Google address`);
   }
-  if (["rating", "count", "as_of", "reviews"].some((k) => r[k] != null && r[k] !== "" && !(Array.isArray(r[k]) && !r[k].length)))
-    problems.push("google-reviews.json: rating, count, as_of and reviews aren't shown (links only, decision N3); remove them (open item)");
-  return { site, partners, reviews: r, problems, sample };
+  // Links only (N3): nothing else from the file is kept, so nothing else can render.
+  const links = {};
+  for (const k of ["place_id", "profile_url", "review_url", "write_review_url"]) {
+    if (typeof r[k] === "string" && r[k] && (k === "place_id" ? PLACE_ID_RE.test(r[k]) : GOOGLE_URL_RE.test(r[k]))) links[k] = r[k];
+  }
+  return { site, partners, reviews: links, problems, sample };
 }
 
 const rel = (p) => (p.fee && p.fee !== "none" ? "sponsored noopener" : "noopener");
-const reviewHref = (r) => r.review_url || r.write_review_url || (r.place_id ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(r.place_id)}` : "");
-const profileHref = (r) => r.profile_url || (r.place_id ? `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(r.place_id)}` : "");
 
 function logoOrName(p) {
   return p.logo
@@ -105,18 +108,14 @@ export function partnerStrip(t) {
 </div></section>`;
 }
 
-/** "See our reviews on Google" (the profile) and "Leave us a review" (the
- *  review link). Links only: never a rating, a count or review text (N3).
- *  Empty until the Google Business Profile exists. */
+/** "See our reviews on Google": a link to the Google Business Profile, where
+ *  every review is. Empty until the profile link is exported. Never a rating,
+ *  a count or review text (N3, 8 Nov 2026). */
 export function reviewBadge(t, { compact = false } = {}) {
-  const r = t.reviews ?? {};
-  const write = reviewHref(r);
-  const profile = profileHref(r);
-  if (!write && !profile) return "";
-  const see = profile ? `<a class="review-badge" href="${esc(profile)}" rel="noopener">See our reviews on Google</a>` : "";
-  const ask = write ? `<a class="review-link" href="${esc(write)}" rel="noopener">Leave us a review</a>` : "";
-  if (compact) return `<div class="review-compact">${see || ask}</div>`;
-  return `<div class="review-block">${see}${ask}</div>`;
+  const profile = t.reviews?.profile_url ?? "";
+  if (!profile) return "";
+  const link = `<a class="review-link" href="${esc(profile)}" rel="noopener">See our reviews on Google</a>`;
+  return compact ? `<div class="review-compact">${link}</div>` : `<div class="review-block">${link}</div>`;
 }
 
 function partnerCards(list) {

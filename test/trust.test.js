@@ -1,7 +1,7 @@
 // Partners, affiliates and the Google review link (scripts/lib/trust.mjs).
 // The same file and the same tests live in SiteGuard-Forms-Storefront.
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -18,7 +18,7 @@ const today = new Date().toISOString().slice(0, 10);
 const P = (o) => ({ name: "Acme Brokers", kind: "partner", url: "https://acme.example/", fee: "none", ...o });
 
 test("nothing renders until there is something real to show", async () => {
-  const t = await loadTrust(await fixture([], { place_id: "", rating: null, count: null }), "systems");
+  const t = await loadTrust(await fixture([], { place_id: "", profile_url: "" }), "systems");
   assert.deepEqual(t.problems, []);
   assert.equal(partnerStrip(t), "");
   assert.equal(reviewBadge(t), "");
@@ -66,35 +66,27 @@ test("text is escaped", async () => {
   assert.match(body, /a &amp; b/);
 });
 
-test("Google reviews: links only, never a rating, a count or review text (decision N3)", async () => {
+test("Google reviews: a 'See our reviews on Google' link to the profile, and nothing else (N3)", async () => {
+  // only a Place ID: no link yet (the profile link is the Owner's, from the export)
   let t = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop" }), "systems");
-  let b = reviewBadge(t);
-  assert.match(b, /See our reviews on Google/);
-  assert.match(b, /google\.com\/maps\/place\/\?q=place_id:ChIJabcdefghijklmnop/);
-  assert.match(b, /Leave us a review/);
-  assert.match(b, /search\.google\.com\/local\/writereview\?placeid=ChIJabcdefghijklmnop/);
-  t = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop", profile_url: "https://maps.app.goo.gl/AbCdEf",
-    review_url: "https://share.google/AbCdEfGh", rating: 4.8, count: 12, as_of: today, reviews: [{ text: "Great" }] }), "systems");
-  b = reviewBadge(t);
-  assert.match(b, /href="https:\/\/maps\.app\.goo\.gl\/AbCdEf"[^>]*>See our reviews on Google/);
-  assert.match(b, /href="https:\/\/share\.google\/AbCdEfGh"[^>]*>Leave us a review/);
-  for (const shown of ["4.8", "12 review", "★", "Great", "Rating as shown"]) assert.ok(!b.includes(shown), shown);
-  assert.match(t.problems.join(" | "), /rating, count, as_of and reviews aren't shown.*open item/);
-  assert.match(reviewBadge(t, { compact: true }), /^<div class="review-compact"><a class="review-badge" href="https:\/\/maps\.app\.goo\.gl\/AbCdEf"/);
-});
-
-test("the export's write-a-review link is used when there is no review link", async () => {
-  const t = await loadTrust(await fixture([], { write_review_url: "https://search.google.com/local/writereview?placeid=ChIJabcdefghijklmnop" }), "systems");
-  assert.deepEqual(t.problems, []);
-  assert.match(reviewBadge(t), /writereview\?placeid=ChIJabcdefghijklmnop" rel="noopener">Leave us a review/);
-  assert.ok(!/See our reviews/.test(reviewBadge(t)));
-});
-
-test("the committed data and sample carry links only", async () => {
-  for (const f of ["google-reviews.json", "google-reviews.sample.json"]) {
-    const j = JSON.parse(await readFile(new URL(`../data/${f}`, import.meta.url), "utf8"));
-    for (const k of ["rating", "count", "as_of", "reviews"]) assert.ok(!(k in j), `${f}: ${k}`);
+  assert.equal(reviewBadge(t), "");
+  const profile = "https://maps.app.goo.gl/AbCdEfGhIjKl";
+  t = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop", profile_url: profile,
+    review_url: "https://g.page/r/CabcdefSiteGuard/review", write_review_url: "https://search.google.com/local/writereview?placeid=ChIJabcdefghijklmnop" }), "systems");
+  for (const b of [reviewBadge(t), reviewBadge(t, { compact: true })]) {
+    assert.match(b, /<a class="review-link" href="https:\/\/maps\.app\.goo\.gl\/AbCdEfGhIjKl" rel="noopener">See our reviews on Google<\/a>/);
+    assert.ok(!/★|☆|rating|review count|on Google ·/i.test(b.replace("See our reviews on Google", "")));
   }
+  assert.deepEqual(t.problems, []);
+});
+
+test("a rating, count or review text left in an old file is ignored, never shown", async () => {
+  const t = await loadTrust(await fixture([], { place_id: "ChIJabcdefghijklmnop", profile_url: "https://share.google/AbCdEfGhIjKlMnOp",
+    rating: 4.8, count: 12, as_of: "2026-10-27", reviews: [{ text: "Great", author_name: "Someone" }] }), "systems");
+  assert.deepEqual(Object.keys(t.reviews).sort(), ["place_id", "profile_url"]);
+  const b = reviewBadge(t) + partnersBody(t, { source: "systems", brand: "SiteGuard" });
+  for (const gone of ["4.8", "12 review", "★", "Great", "Someone", "Rating as shown"]) assert.ok(!b.includes(gone), gone);
+  assert.match(b, /See our reviews on Google/);
 });
 
 test("review links must point at Google", async () => {
