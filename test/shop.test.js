@@ -128,11 +128,11 @@ test("one cart: header cart on every page, /cart/ with the checkout notice and t
   assert.ok(js.includes('var ROOT = "/forms/"') && js.includes('body.source_site = "systems"'));
 });
 
-test("shop.mjs, cart.mjs and cart-browser.js are the storefront's files (when checked out beside this repo)", async () => {
+test("shop.mjs, cart.mjs, cart-browser.js and trust.mjs are the storefront's files (when checked out beside this repo)", async () => {
   for (const sib of ["../SiteGuard-Forms-Storefront", "../_wt_storefront_s8"]) {
     const other = path.resolve(ROOT, sib, "scripts/lib");
     if (!existsSync(path.join(other, "shop.mjs"))) continue;
-    for (const f of ["shop.mjs", "cart.mjs", "cart-browser.js"]) {
+    for (const f of ["shop.mjs", "cart.mjs", "cart-browser.js", "trust.mjs"]) {
       const a = (await readFile(path.join(ROOT, "scripts/lib", f), "utf8")).replace(/\r\n/g, "\n");
       const b = (await readFile(path.join(other, f), "utf8")).replace(/\r\n/g, "\n");
       assert.equal(a, b, `${f} differs from ${sib}`);
@@ -166,5 +166,6 @@ test("S20: the subscriptions page promises email, not an account (no account whi
   const src = await (await import("node:fs/promises")).readFile(new URL("../scripts/lib/shop.mjs", import.meta.url), "utf8");
   assert.ok(!/pushed to your account|from your account/.test(src));
   assert.match(src, /emailed to you after each 6-monthly review/);
-  assert.match(src, /To cancel, email support@siteguardsystems\.com\.au at any time/);
+  // K6 (24 Nov 2026): the storefront's shop.mjs wins, and it says "email us" (no address).
+  assert.match(src, /To cancel, email us at any time/);
 });
