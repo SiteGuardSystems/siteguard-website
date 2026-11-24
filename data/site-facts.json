@@ -1,9 +1,38 @@
 {
- "generated_at": "2026-10-31T01:54:39+00:00",
- "dcr_revision": 23,
- "dcr_sha256": "8a8db29c7753ded334f8170bb20b1029fe94e414667e027bc10ffc0e0670a7af",
+ "generated_at": "2026-11-24T05:41:17+00:00",
+ "dcr_revision": 24,
+ "dcr_sha256": "eced966dad2fbd1ef5087298f8ee3b18677156ccd1992bdd7dd3c123798703ef",
  "preview": false,
- "pricing_revision": "Rev03 -- 2026-10-18",
+ "pricing_revision": "Rev09 -- 2026-11-24",
+ "price_table": {
+  "revision": "Rev09",
+  "effective_from": "2027-03-01",
+  "price_review_clause": true,
+  "price_review": {
+   "frequency": "yearly",
+   "notice": "set in the Terms of Sale (solicitor brief pack Rev03); not set here",
+   "founding_price_carried_forward": false
+  },
+  "currency": "AUD",
+  "prices_exclude_gst": true,
+  "default_cadence": "annual",
+  "monthly_factor": 1.15,
+  "monthly_round_to_aud": 1,
+  "launch_waves": [
+   "mar-2027",
+   "jun-2027",
+   "later",
+   "gated"
+  ],
+  "purchasable_waves": [
+   "mar-2027"
+  ],
+  "consultant_plans_enabled": false,
+  "single_document": {
+   "one_off_aud": 44,
+   "launch_wave": "mar-2027"
+  }
+ },
  "facts": {
   "documents": 781,
   "documents_rounded": "780+",
@@ -21,11 +50,11 @@
   "review_cycle": "6-monthly"
  },
  "from_prices": {
-  "trade-packs": 390,
-  "builder-packs": 2390,
-  "management-systems": 349,
-  "specialist-packs": 349,
-  "consultants": 3990
+  "trade-packs": 479,
+  "builder-packs": 899,
+  "management-systems": 1799,
+  "specialist-packs": 479,
+  "consultants": null
  },
  "trades": [
   "Carpentry",
