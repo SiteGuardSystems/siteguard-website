@@ -45,11 +45,20 @@ const isAppPage = (f) => /^(app|audit)\//.test(f) || f === "index.html";
 // Launch prices from Packages and Pricing Rev06 (ex GST): none may show while coming soon.
 const APP_PRICES = /\$\s?(196|271|496|910|1,?279|1,?757|75)\b/;
 
+// A FORMS pack's own price can equal an app price (Packs Rev09: Builder Light Commercial is
+// $196 a month), so on the FORMS shop pages the packs' own prices are taken out first.
+const FORMS_CAT = JSON.parse(readFileSync(new URL("../data/catalogue.json", import.meta.url), "utf8"));
+const FORMS_PRICES = new Set(FORMS_CAT.packs.filter((p) => p.group !== "app" && p.prices)
+  .flatMap((p) => [p.prices.one_off, p.prices.annual, p.prices.monthly]).filter(Number.isInteger));
+const withoutFormsPrices = (f, text) => (f.startsWith("forms/")
+  ? text.replace(/\$\s?(\d{1,3}(?:,\d{3})*|\d+)\b/g, (m, n) => (FORMS_PRICES.has(Number(n.replace(/,/g, ""))) ? " " : m))
+  : text);
+
 test("coming_soon: no app or audit prices anywhere; every buy button is Register interest", () => {
   const { pages } = builds.coming_soon;
   for (const [f, html] of pages) {
     const text = html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ");
-    assert.ok(!APP_PRICES.test(text), `${f}: shows an app or audit price`);
+    assert.ok(!APP_PRICES.test(withoutFormsPrices(f, text)), `${f}: shows an app or audit price`);
     if (isAppPage(f)) assert.ok(!/\$\s?\d/.test(text), `${f}: shows a price`);
     for (const [, href, label] of html.matchAll(/<a class="btn[^"]*" href="([^"]+)">([^<]+)<\/a>/g)) {
       // A buy button is any button that leads to buying: while coming soon, only Register interest.
